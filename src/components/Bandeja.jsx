@@ -163,7 +163,22 @@ export default function Bandeja() {
   const [filtro,   setFiltro]   = useState("Todos")
   const [loading,  setLoading]  = useState(true)
 
-  useEffect(() => { fetchTurnos() }, [])
+  useEffect(() => {
+    fetchTurnos()
+
+    // Supabase Realtime — actualiza la bandeja cuando llega un turno nuevo
+    const channel = supabase
+      .channel("turnos-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "turnos", filter: `client_id=eq.${CLIENT_ID}` },
+        () => { fetchTurnos() }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
   useEffect(() => { if (activo) fetchMensajes(activo.contact_id) }, [activo])
 
   async function fetchTurnos() {
