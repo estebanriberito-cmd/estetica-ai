@@ -206,7 +206,7 @@ export default function Bandeja() {
     if (!error && data) {
       const parsed = data.map(m => {
         try {
-          const msg = JSON.parse(m.message)
+          const msg = typeof m.message === "string" ? JSON.parse(m.message) : m.message
           if (msg.name) return null
           let texto = ""
           if (msg.type === "human") {
