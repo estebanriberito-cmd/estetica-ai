@@ -25,7 +25,7 @@ export default function App() {
     <div style={{ display: "flex", height: "100vh", background: "#121212", color: "#fff", fontFamily: "'Inter', sans-serif" }}>
       <div style={{ width: 200, background: "#161616", borderRight: "1px solid #1e1e1e", display: "flex", flexDirection: "column", padding: "16px 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 16px 20px", borderBottom: "1px solid #1e1e1e", marginBottom: 12 }}>
-          <img src="/Logo_esteban_AI.jpg" style={{ width: 28, height: 28, borderRadius: 7, objectFit: "cover" }} />
+          <img src="/logo.jpg" style={{ width: 28, height: 28, borderRadius: 7, objectFit: "cover" }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 500 }}>Estética AI</div>
             <div style={{ fontSize: 10, color: "#444" }}>Panel de control</div>
@@ -51,7 +51,7 @@ export default function App() {
           </div>
         ))}
         <div style={{ marginTop: "auto", padding: "12px 16px", borderTop: "1px solid #1e1e1e", display: "flex", alignItems: "center", gap: 8 }}>
-          <img src="/Logo_esteban_AI.jpg" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
+          <img src="/logo.jpg" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
           <div>
             <div style={{ fontSize: 11, color: "#bbb" }}>Lumina Estética</div>
             <div style={{ fontSize: 10, color: "#444" }}>Plan Pro</div>
