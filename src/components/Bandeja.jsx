@@ -16,13 +16,8 @@ export default function Bandeja() {
   const [filtro, setFiltro] = useState("Todos")
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchTurnos()
-  }, [])
-
-  useEffect(() => {
-    if (activo) fetchMensajes(activo.contact_id)
-  }, [activo])
+  useEffect(() => { fetchTurnos() }, [])
+  useEffect(() => { if (activo) fetchMensajes(activo.contact_id) }, [activo])
 
   async function fetchTurnos() {
     setLoading(true)
@@ -43,22 +38,41 @@ export default function Bandeja() {
       .select('*')
       .eq('session_id', String(contact_id))
       .order('id', { ascending: true })
-      .limit(50)
+      .limit(100)
     if (!error && data) {
       const parsed = data.map(m => {
         try {
           const msg = JSON.parse(m.message)
-          return { id: m.id, tipo: msg.type === 'human' ? 'user' : 'bot', texto: msg.content || '', hora: new Date(m.created_at || Date.now()).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' }) }
+          if (msg.name) return null
+          let texto = ''
+          if (msg.type === 'human') {
+            const parts = msg.content.split('---')
+            const ultima = parts[parts.length - 1].trim()
+            texto = ultima.length > 0 ? ultima : msg.content.slice(0, 100)
+          } else if (msg.type === 'ai') {
+            try {
+              const json = JSON.parse(msg.content)
+              texto = [json.mensaje_1, json.mensaje_2].filter(Boolean).join(' / ')
+            } catch {
+              texto = msg.content.replace(/\{[\s\S]*\}/g, '').trim().slice(0, 200)
+            }
+          }
+          if (!texto) return null
+          return {
+            id: m.id,
+            tipo: msg.type === 'human' ? 'user' : 'bot',
+            texto,
+            hora: new Date(m.id * 1000 || Date.now()).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })
+          }
         } catch { return null }
       }).filter(Boolean)
-      setMensajes(parsed)
+      setMensajes(parsed.length > 0 ? parsed : msgs_demo)
     } else {
       setMensajes(msgs_demo)
     }
   }
 
   const filtrados = turnos.filter(t => filtro === "Todos" || t.canal === filtro)
-
   const estadoColor = { confirmado: "#4dcca0", reagendado: "#d4a8ff", cancelado: "#f07070" }
   const estadoBg = { confirmado: "#1D9E7518", reagendado: "#7B2FFF18", cancelado: "#E24B4A18" }
 
