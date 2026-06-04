@@ -215,9 +215,10 @@ export default function Bandeja() {
             texto = ultima.length > 0 ? ultima : msg.content.slice(0, 100)
          } else if (msg.type === "ai") {
             try {
-              const match = msg.content.match(/\{[\s\S]*\}/)
-              if (match) {
-                const json = JSON.parse(match[0])
+              const start = msg.content.indexOf("{")
+              const end = msg.content.lastIndexOf("}")
+              if (start !== -1 && end > start) {
+                const json = JSON.parse(msg.content.slice(start, end + 1))
                 texto = [json.mensaje_1, json.mensaje_2].filter(Boolean).join(" / ")
               }
             } catch {
