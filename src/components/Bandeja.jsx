@@ -181,7 +181,7 @@ export default function Bandeja() {
     const { data, error } = await supabase
       .from("turnos").select("*")
       .eq("client_id", CLIENT_ID)
-      .order("created_at", { ascending: false })
+      .order("updated_at", { ascending: false })
     if (!error && data) {
       setTurnos(data)
       if (data.length > 0 && !activoRef.current) setActivo(data[0])
