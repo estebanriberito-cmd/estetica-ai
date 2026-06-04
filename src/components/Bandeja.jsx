@@ -122,6 +122,10 @@ export default function Bandeja() {
   const [enviando,    setEnviando]    = useState(false)
   const typingTimeoutRef = useRef(null)
   const messagesEndRef   = useRef(null)
+  const activoRef        = useRef(null)
+
+  /* Sync activoRef */
+  useEffect(() => { activoRef.current = activo }, [activo])
 
   /* Turnos realtime */
   useEffect(() => {
@@ -180,7 +184,7 @@ export default function Bandeja() {
       .order("created_at", { ascending: false })
     if (!error && data) {
       setTurnos(data)
-      if (data.length > 0 && !activo) setActivo(data[0])
+      if (data.length > 0 && !activoRef.current) setActivo(data[0])
     }
     setLoading(false)
   }
@@ -260,16 +264,23 @@ export default function Bandeja() {
     if (!inputText.trim() || !activo || enviando) return
     setEnviando(true)
     try {
+      const textToSend = inputText.trim()
       await fetch("/api/send-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subscriber_id: activo.contact_id,
-          text: inputText.trim(),
+          text: textToSend,
           canal: activo.canal || "Instagram"
         })
       })
       setInputText("")
+      setMensajes(prev => [...prev, {
+        id: Date.now(),
+        tipo: "user",
+        texto: textToSend,
+        hora: new Date().toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit" })
+      }])
     } catch (e) { console.error("Error enviando:", e) }
     setEnviando(false)
   }
