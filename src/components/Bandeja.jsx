@@ -263,6 +263,19 @@ export default function Bandeja() {
   async function archivar(id, e) {
     e.stopPropagation()
     const { error } = await supabase.from("turnos").update({ estado: "archivado" }).eq("id", id)
+    if (!error) setTurnos(prev => prev.map(t => t.id === id ? { ...t, estado: "archivado" } : t))
+  }
+
+  async function desarchivar(id, e) {
+    e.stopPropagation()
+    const { error } = await supabase.from("turnos").update({ estado: "confirmado" }).eq("id", id)
+    if (!error) setTurnos(prev => prev.map(t => t.id === id ? { ...t, estado: "confirmado" } : t))
+  }
+
+  async function eliminar(id, e) {
+    e.stopPropagation()
+    if (!window.confirm("Eliminar este contacto permanentemente?")) return
+    const { error } = await supabase.from("turnos").delete().eq("id", id)
     if (!error) {
       setTurnos(prev => prev.filter(t => t.id !== id))
       if (activo?.id === id) setActivo(null)
@@ -375,7 +388,16 @@ export default function Bandeja() {
                       <Badge label={t.estado || "confirmado"} {...es} />
                       {t.bajo_control && <Badge label="En control" color="#f07070" bg="rgba(240,112,112,0.10)" border="rgba(240,112,112,0.22)" />}
                     </div>
-                    <button onClick={e => archivar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 4px", borderRadius: 4, fontSize: 14, lineHeight: 1, flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.color = "#f07070"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"} title="Archivar">×</button>
+                    <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                      {t.estado === "archivado" ? (
+                        <>
+                          <button onClick={e => desarchivar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 5px", borderRadius: 4, fontSize: 11, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#1D9E75"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"} title="Desarchivar">↩</button>
+                          <button onClick={e => eliminar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 4px", borderRadius: 4, fontSize: 13, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#f07070"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"} title="Eliminar">🗑</button>
+                        </>
+                      ) : (
+                        <button onClick={e => archivar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 4px", borderRadius: 4, fontSize: 14, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#f07070"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"} title="Archivar">×</button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
