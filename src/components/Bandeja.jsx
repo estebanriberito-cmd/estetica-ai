@@ -149,7 +149,11 @@ export default function Bandeja() {
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "n8n_chat_histories",
         filter: `session_id=eq.${activo.contact_id}`
-      }, () => { fetchMensajes(activo.contact_id) })
+      }, () => {
+        setTyping(false)
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+        fetchMensajes(activo.contact_id)
+      })
       .subscribe()
 
     // Typing indicator via locks table
@@ -306,7 +310,12 @@ export default function Bandeja() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarMensaje() }
   }
 
-  const filtrados = turnos.filter(t => filtro === "Todos" || t.canal === filtro)
+  const filtrados = turnos.filter(t => {
+    if (filtro === "Archivados") return t.estado === "archivado"
+    if (t.estado === "archivado") return false
+    if (filtro === "Todos") return true
+    return t.canal === filtro
+  })
 
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
@@ -325,8 +334,8 @@ export default function Bandeja() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 5, padding: "0 14px 12px", borderBottom: "1px solid var(--border)" }}>
-          {["Todos", "WhatsApp", "Instagram"].map(f => (
+        <div style={{ display: "flex", gap: 5, padding: "0 14px 12px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
+          {["Todos", "WhatsApp", "Instagram", "Archivados"].map(f => (
             <button key={f} onClick={() => setFiltro(f)} style={{ fontSize: 10, fontWeight: filtro === f ? 500 : 400, padding: "4px 10px", borderRadius: 20, background: filtro === f ? "var(--primary-10)" : "rgba(255,255,255,0.02)", border: filtro === f ? "1px solid var(--primary-25)" : "1px solid #1e1e1e", color: filtro === f ? "#c9a0ff" : "var(--text-3)", transition: "all 0.15s" }}>{f}</button>
           ))}
         </div>
