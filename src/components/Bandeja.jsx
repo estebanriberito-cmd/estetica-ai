@@ -144,29 +144,37 @@ export default function Bandeja() {
     setBajoControl(activo.bajo_control || false)
     setTyping(false)
 
-    const ch = supabase.channel(`chat-${activo.contact_id}`)
+    // Suscripción a mensajes del chat
+    const chatCh = supabase.channel(`chat-${activo.contact_id}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "n8n_chat_histories",
         filter: `session_id=eq.${activo.contact_id}`
-      }, (payload) => {
-        try {
-          const msg = typeof payload.new.message === "string"
-            ? JSON.parse(payload.new.message) : payload.new.message
-          if (msg.type === "human" && !msg.name) {
-            setTyping(true)
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-            typingTimeoutRef.current = setTimeout(() => setTyping(false), 45000)
-          } else if (msg.type === "ai" && !msg.name) {
-            setTyping(false)
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-            fetchMensajes(activo.contact_id)
-          }
-        } catch {}
+      }, () => { fetchMensajes(activo.contact_id) })
+      .subscribe()
+
+    // Typing indicator via locks table
+    const lockCh = supabase.channel(`lock-${activo.contact_id}`)
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "locks",
+        filter: `contact_id=eq.${activo.contact_id}`
+      }, () => {
+        setTyping(true)
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+        typingTimeoutRef.current = setTimeout(() => setTyping(false), 60000)
+      })
+      .on("postgres_changes", {
+        event: "DELETE", schema: "public", table: "locks",
+        filter: `contact_id=eq.${activo.contact_id}`
+      }, () => {
+        setTyping(false)
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+        setTimeout(() => fetchMensajes(activo.contact_id), 500)
       })
       .subscribe()
 
     return () => {
-      supabase.removeChannel(ch)
+      supabase.removeChannel(chatCh)
+      supabase.removeChannel(lockCh)
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     }
   }, [activo?.contact_id])
@@ -245,6 +253,15 @@ export default function Bandeja() {
     if (!error) {
       setTurnos(prev => prev.map(t => t.id === activo.id ? { ...t, estado } : t))
       setActivo(prev => ({ ...prev, estado }))
+    }
+  }
+
+  async function archivar(id, e) {
+    e.stopPropagation()
+    const { error } = await supabase.from("turnos").update({ estado: "archivado" }).eq("id", id)
+    if (!error) {
+      setTurnos(prev => prev.filter(t => t.id !== id))
+      if (activo?.id === id) setActivo(null)
     }
   }
 
@@ -343,10 +360,13 @@ export default function Bandeja() {
                     <span style={{ fontSize: 9, color: "var(--text-4)", flexShrink: 0, marginLeft: 6 }}>{t.hora_turno || ""}</span>
                   </div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 7 }}>{t.servicio || "Sin servicio"}</div>
-                  <div style={{ display: "flex", gap: 5 }}>
-                    <Badge label={t.canal || "Instagram"} {...ca} />
-                    <Badge label={t.estado || "confirmado"} {...es} />
-                    {t.bajo_control && <Badge label="En control" color="#f07070" bg="rgba(240,112,112,0.10)" border="rgba(240,112,112,0.22)" />}
+                  <div style={{ display: "flex", gap: 5, alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      <Badge label={t.canal || "Instagram"} {...ca} />
+                      <Badge label={t.estado || "confirmado"} {...es} />
+                      {t.bajo_control && <Badge label="En control" color="#f07070" bg="rgba(240,112,112,0.10)" border="rgba(240,112,112,0.22)" />}
+                    </div>
+                    <button onClick={e => archivar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 4px", borderRadius: 4, fontSize: 14, lineHeight: 1, flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.color = "#f07070"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"} title="Archivar">×</button>
                   </div>
                 </div>
               </div>
