@@ -2,8 +2,6 @@ import { useEffect, useState, useRef } from "react"
 import { supabase } from "../supabase"
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID || "lumina_estetica"
-const MANYCHAT_KEY = import.meta.env.VITE_MANYCHAT_KEY || "5039735:ee75a4ec665aa1f0524b7fadb0d3c78d"
-
 /* ── Demo data ──────────────────────────────────────────────────────────── */
 const msgs_demo = [
   { id: 1, tipo: "user", texto: "hola quiero turno para limpieza facial el viernes", hora: "19:20" },
@@ -261,14 +259,14 @@ export default function Bandeja() {
   async function enviarMensaje() {
     if (!inputText.trim() || !activo || enviando) return
     setEnviando(true)
-    const tipo = activo.canal === "WhatsApp" ? "whatsapp" : "instagram"
     try {
-      await fetch("https://api.manychat.com/fb/sending/sendContent", {
+      await fetch("/api/send-message", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${MANYCHAT_KEY}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subscriber_id: activo.contact_id,
-          data: { version: "v2", content: { type: tipo, messages: [{ type: "text", text: inputText.trim() }] } }
+          text: inputText.trim(),
+          canal: activo.canal || "Instagram"
         })
       })
       setInputText("")
