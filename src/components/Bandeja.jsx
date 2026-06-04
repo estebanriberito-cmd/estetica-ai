@@ -213,13 +213,16 @@ export default function Bandeja() {
             const parts = msg.content.split("---")
             const ultima = parts[parts.length - 1].trim()
             texto = ultima.length > 0 ? ultima : msg.content.slice(0, 100)
-          } else if (msg.type === "ai") {
+         } else if (msg.type === "ai") {
             try {
-              const json = JSON.parse(msg.content)
+              const clean = msg.content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+              const json = JSON.parse(clean)
               texto = [json.mensaje_1, json.mensaje_2].filter(Boolean).join(" / ")
             } catch {
-              texto = msg.content.replace(/\{[\s\S]*\}/g, "").trim().slice(0, 200)
+              const clean2 = msg.content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+              texto = clean2.replace(/\{[\s\S]*\}/g, "").trim().slice(0, 200)
             }
+          }
           }
           if (!texto) return null
           return {
