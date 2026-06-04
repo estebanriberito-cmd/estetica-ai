@@ -210,9 +210,17 @@ export default function Bandeja() {
           if (msg.name) return null
           let texto = ""
           if (msg.type === "human") {
-            const parts = msg.content.split("---")
-            const ultima = parts[parts.length - 1].trim()
-            texto = ultima.length > 0 ? ultima : msg.content.slice(0, 100)
+            // El mensaje real está entre la línea CANAL: y el primer ---
+            const canalPos = msg.content.indexOf("CANAL:")
+            const firstDash = msg.content.indexOf("\n---")
+            if (canalPos !== -1 && firstDash !== -1 && firstDash > canalPos) {
+              const afterCanal = msg.content.indexOf("\n", canalPos) + 1
+              texto = msg.content.slice(afterCanal, firstDash).trim()
+            } else if (firstDash !== -1) {
+              texto = msg.content.slice(0, firstDash).trim().split("\n").filter(Boolean).pop() || ""
+            } else {
+              texto = msg.content.slice(0, 100)
+            }
          } else if (msg.type === "ai") {
             try {
               const start = msg.content.indexOf("{")
