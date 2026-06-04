@@ -223,7 +223,6 @@ export default function Bandeja() {
               texto = clean2.replace(/\{[\s\S]*\}/g, "").trim().slice(0, 200)
             }
           }
-          }
           if (!texto) return null
           return {
             id: m.id,
