@@ -204,13 +204,13 @@ export default function Bandeja() {
       .limit(100)
 
     if (!error && data) {
-      const parsed = data.map(m => {
+      const hora = (id) => new Date(id * 1000 || Date.now()).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit" })
+      const parsed = data.flatMap(m => {
         try {
           const msg = typeof m.message === "string" ? JSON.parse(m.message) : m.message
-          if (msg.name) return null
-          let texto = ""
+          if (msg.name) return []
           if (msg.type === "human") {
-            // El mensaje real está entre la línea CANAL: y el primer ---
+            let texto = ""
             const canalPos = msg.content.indexOf("CANAL:")
             const firstDash = msg.content.indexOf("\n---")
             if (canalPos !== -1 && firstDash !== -1 && firstDash > canalPos) {
@@ -221,29 +221,25 @@ export default function Bandeja() {
             } else {
               texto = msg.content.slice(0, 100)
             }
-         } else if (msg.type === "ai") {
+            if (!texto) return []
+            return [{ id: m.id, tipo: "user", texto, hora: hora(m.id) }]
+          } else if (msg.type === "ai") {
             try {
               const start = msg.content.indexOf("{")
               const end = msg.content.lastIndexOf("}")
               if (start !== -1 && end > start) {
                 const json = JSON.parse(msg.content.slice(start, end + 1))
-                texto = [json.mensaje_1, json.mensaje_2].filter(Boolean).join(" / ")
+                const bubbles = []
+                if (json.mensaje_1) bubbles.push({ id: m.id, tipo: "bot", texto: json.mensaje_1, hora: hora(m.id) })
+                if (json.mensaje_2) bubbles.push({ id: m.id + 0.1, tipo: "bot", texto: json.mensaje_2, hora: hora(m.id) })
+                return bubbles
               }
-            } catch {
-              texto = ""
-            }
+            } catch {}
+            return []
           }
-          if (!texto) return null
-          return {
-            id: m.id,
-            tipo: msg.type === "human" ? "user" : "bot",
-            texto,
-            hora: new Date(m.id * 1000 || Date.now()).toLocaleTimeString("es-UY", {
-              hour: "2-digit", minute: "2-digit",
-            }),
-          }
-        } catch { return null }
-      }).filter(Boolean)
+          return []
+        } catch { return [] }
+      })
       setMensajes(parsed.length > 0 ? parsed : msgs_demo)
     } else {
       setMensajes(msgs_demo)
