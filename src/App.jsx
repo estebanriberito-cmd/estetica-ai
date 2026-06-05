@@ -97,7 +97,6 @@ export default function App() {
           display: "flex",
           background: "var(--surface-1)",
           borderTop: "1px solid var(--border)",
-          paddingBottom: "env(safe-area-inset-bottom)",
         }}>
           {NAV.map(({ id, label, Icon }) => {
             const active = page === id
@@ -109,8 +108,8 @@ export default function App() {
                   flex: 1,
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   gap: 4,
-                  padding: "10px 4px",
-                  paddingBottom: "max(10px, env(safe-area-inset-bottom))",
+                  padding: "10px 4px 0",
+                  paddingBottom: "max(12px, env(safe-area-inset-bottom))",
                   background: "none", border: "none", cursor: "pointer",
                   color: active ? "#c9a0ff" : "#3a3a3a",
                   transition: "color 0.15s",

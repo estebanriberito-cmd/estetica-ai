@@ -24,7 +24,13 @@ function WaIcon()        { return <svg width="12" height="12" viewBox="0 0 24 24
 
 function parsePrecio(str) {
   if (!str) return 0
-  const n = parseFloat(String(str).replace(/[^0-9.]/g, ""))
+  // Eliminar símbolo $ y espacios, luego quitar puntos de miles (ej: 1.400 → 1400)
+  // y reemplazar coma decimal por punto si existe
+  const clean = String(str)
+    .replace(/[^0-9.,]/g, "")  // dejar solo números, punto y coma
+    .replace(/\.(?=\d{3}(?:[,.]|$))/g, "")  // quitar punto si es separador de miles
+    .replace(",", ".")  // normalizar coma decimal
+  const n = parseFloat(clean)
   return isNaN(n) ? 0 : n
 }
 
