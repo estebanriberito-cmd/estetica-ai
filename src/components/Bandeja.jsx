@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react"
 import { supabase } from "../supabase"
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID || "lumina_estetica"
+
 /* ── Demo data ──────────────────────────────────────────────────────────── */
 const msgs_demo = [
   { id: 1, tipo: "user", texto: "hola quiero turno para limpieza facial el viernes", hora: "19:20" },
@@ -45,12 +46,6 @@ const CANAL = {
   WhatsApp:  { color: "#1D9E75", bg: "rgba(29,158,117,0.10)", border: "rgba(29,158,117,0.22)" },
   Instagram: { color: "#D926FF", bg: "rgba(217,38,255,0.10)", border: "rgba(217,38,255,0.22)" },
 }
-const ACTIONS = [
-  { label: "Confirmar", color: "#1D9E75", bg: "rgba(29,158,117,0.10)",  border: "rgba(29,158,117,0.22)",  Icon: CheckIcon,  estado: "confirmado" },
-  { label: "Reagendar", color: "#c9a0ff", bg: "rgba(123,47,255,0.12)",  border: "rgba(123,47,255,0.28)",  Icon: ClockIcon,  estado: "reagendado"  },
-  { label: "Cancelar",  color: "#f07070", bg: "rgba(240,112,112,0.10)", border: "rgba(240,112,112,0.22)", Icon: CloseIcon,  estado: "cancelado"   },
-  { label: "Perdido",   color: "#3a3a3a", bg: "rgba(255,255,255,0.03)", border: "#1e1e1e",                Icon: GhostIcon,  estado: null          },
-]
 
 /* ── Icons ──────────────────────────────────────────────────────────────── */
 function SearchIcon() {
@@ -64,18 +59,6 @@ function HandIcon() {
 }
 function BotIcon() {
   return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M9 11V7a3 3 0 016 0v4"/><circle cx="9" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="16" r="1" fill="currentColor" stroke="none"/></svg>
-}
-function CheckIcon() {
-  return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-}
-function ClockIcon() {
-  return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-}
-function CloseIcon() {
-  return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-}
-function GhostIcon() {
-  return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10h.01M15 10h.01M12 2a8 8 0 00-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 00-8-8z"/></svg>
 }
 
 /* ── Sub-components ─────────────────────────────────────────────────────── */
@@ -115,6 +98,7 @@ export default function Bandeja() {
   const [activo,      setActivo]      = useState(null)
   const [mensajes,    setMensajes]    = useState([])
   const [filtro,      setFiltro]      = useState("Todos")
+  const [busqueda,    setBusqueda]    = useState("")
   const [loading,     setLoading]     = useState(true)
   const [bajoControl, setBajoControl] = useState(false)
   const [typing,      setTyping]      = useState(false)
@@ -124,10 +108,8 @@ export default function Bandeja() {
   const messagesEndRef   = useRef(null)
   const activoRef        = useRef(null)
 
-  /* Sync activoRef */
   useEffect(() => { activoRef.current = activo }, [activo])
 
-  /* Turnos realtime */
   useEffect(() => {
     fetchTurnos()
     const ch = supabase.channel("turnos-rt")
@@ -137,7 +119,6 @@ export default function Bandeja() {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
-  /* Chat realtime cuando cambia activo */
   useEffect(() => {
     if (!activo) return
     fetchMensajes(activo.contact_id)
@@ -181,10 +162,16 @@ export default function Bandeja() {
     }
   }, [activo?.contact_id])
 
-  /* Auto-scroll */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [mensajes, typing])
+
+  /* ── Register service worker ── */
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {})
+    }
+  }, [])
 
   async function fetchTurnos() {
     setLoading(true)
@@ -232,7 +219,7 @@ export default function Bandeja() {
               if (start !== -1 && end > start) {
                 const json = JSON.parse(msg.content.slice(start, end + 1))
                 const bubbles = []
-                if (json.mensaje_1) bubbles.push({ id: m.id,     tipo: "bot", texto: json.mensaje_1, hora: hora(m.id) })
+                if (json.mensaje_1) bubbles.push({ id: m.id,       tipo: "bot", texto: json.mensaje_1, hora: hora(m.id) })
                 if (json.mensaje_2) bubbles.push({ id: m.id + 0.1, tipo: "bot", texto: json.mensaje_2, hora: hora(m.id) })
                 return bubbles
               }
@@ -245,16 +232,6 @@ export default function Bandeja() {
       setMensajes(parsed.length > 0 ? parsed : msgs_demo)
     } else {
       setMensajes(msgs_demo)
-    }
-  }
-
-  async function actualizarEstado(estado) {
-    if (!activo) return
-    const { error } = await supabase.from("turnos")
-      .update({ estado, updated_at: new Date().toISOString() }).eq("id", activo.id)
-    if (!error) {
-      setTurnos(prev => prev.map(t => t.id === activo.id ? { ...t, estado } : t))
-      setActivo(prev => ({ ...prev, estado }))
     }
   }
 
@@ -308,9 +285,7 @@ export default function Bandeja() {
       })
       setInputText("")
       setMensajes(prev => [...prev, {
-        id: Date.now(),
-        tipo: "user",
-        texto: textToSend,
+        id: Date.now(), tipo: "user", texto: textToSend,
         hora: new Date().toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit" })
       }])
     } catch (e) { console.error("Error enviando:", e) }
@@ -321,12 +296,22 @@ export default function Bandeja() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarMensaje() }
   }
 
-  const filtrados = turnos.filter(t => {
-    if (filtro === "Archivados") return t.estado === "archivado"
-    if (t.estado === "archivado") return false
-    if (filtro === "Todos") return true
-    return t.canal === filtro
-  })
+  const filtrados = turnos
+    .filter(t => {
+      if (filtro === "Archivados") return t.estado === "archivado"
+      if (t.estado === "archivado") return false
+      if (filtro === "Todos") return true
+      return t.canal === filtro
+    })
+    .filter(t => {
+      if (!busqueda.trim()) return true
+      const q = busqueda.toLowerCase()
+      return (
+        (t.nombre || "").toLowerCase().includes(q) ||
+        (t.servicio || "").toLowerCase().includes(q) ||
+        (t.preview || "").toLowerCase().includes(q)
+      )
+    })
 
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
@@ -339,9 +324,19 @@ export default function Bandeja() {
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", letterSpacing: "-0.2px" }}>Conversaciones</span>
             <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 20, background: "var(--primary-10)", color: "#c9a0ff", border: "1px solid var(--primary-25)" }}>{filtrados.length}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface-2)", borderRadius: "var(--radius-sm)", padding: "8px 11px", border: "1px solid var(--border-2)" }}>
-            <span style={{ color: "var(--text-3)", display: "flex", alignItems: "center" }}><SearchIcon /></span>
-            <span style={{ fontSize: 11, color: "#2a2a2a" }}>Buscar contacto...</span>
+
+          {/* Búsqueda funcional */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface-2)", borderRadius: "var(--radius-sm)", padding: "8px 11px", border: `1px solid ${busqueda ? "rgba(123,47,255,0.4)" : "var(--border-2)"}`, transition: "border-color 0.15s" }}>
+            <span style={{ color: "var(--text-3)", display: "flex", alignItems: "center", flexShrink: 0 }}><SearchIcon /></span>
+            <input
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              placeholder="Buscar contacto..."
+              style={{ background: "none", border: "none", outline: "none", fontSize: 11, color: "var(--text-1)", width: "100%", fontFamily: "inherit" }}
+            />
+            {busqueda && (
+              <button onClick={() => setBusqueda("")} style={{ background: "none", border: "none", color: "var(--text-4)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+            )}
           </div>
         </div>
 
@@ -355,7 +350,9 @@ export default function Bandeja() {
           {loading ? (
             <div style={{ padding: 28, textAlign: "center", fontSize: 11, color: "var(--text-4)" }}>Cargando...</div>
           ) : filtrados.length === 0 ? (
-            <div style={{ padding: 28, textAlign: "center", fontSize: 11, color: "var(--text-4)" }}>Sin conversaciones</div>
+            <div style={{ padding: 28, textAlign: "center", fontSize: 11, color: "var(--text-4)" }}>
+              {busqueda ? `Sin resultados para "${busqueda}"` : "Sin conversaciones"}
+            </div>
           ) : filtrados.map(t => {
             const isAct = activo?.id === t.id
             const es    = ESTADO[t.estado] || ESTADO.confirmado
@@ -376,15 +373,15 @@ export default function Bandeja() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: isAct ? "#e8e8e8" : "#bbb" }}>{t.nombre || "Sin nombre"}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: isAct ? "#e8e8e8" : "#bbb" }}>{t.nombre || "Cliente nuevo"}</span>
                     <span style={{ fontSize: 9, color: "var(--text-4)", flexShrink: 0, marginLeft: 6 }}>{t.hora_turno || ""}</span>
                   </div>
 
-                  {/* ── Preview último mensaje ── */}
+                  {/* Preview último mensaje */}
                   <div style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 7 }}>
                     {t.preview
                       ? <><span style={{ color: "#555", marginRight: 3 }}>AI:</span>{t.preview.length > 38 ? t.preview.slice(0, 38) + "…" : t.preview}</>
-                      : t.servicio || "Sin servicio"
+                      : <span style={{ color: "#333" }}>{t.servicio || "Sin servicio"}</span>
                     }
                   </div>
 
@@ -420,7 +417,7 @@ export default function Bandeja() {
             <div style={{ flexShrink: 0, padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12, background: bajoControl ? "rgba(240,112,112,0.05)" : "var(--surface-1)", transition: "background 0.3s" }}>
               <Avatar name={activo.nombre || "?"} size={36} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{activo.nombre || "Sin nombre"}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{activo.nombre || "Cliente nuevo"}</div>
                 <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 2 }}>
                   {activo.canal || "Instagram"} · {activo.servicio}
                   {bajoControl && <span style={{ marginLeft: 8, color: "#f07070", fontWeight: 500 }}>● En control</span>}
@@ -460,29 +457,8 @@ export default function Bandeja() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Action buttons */}
-            <div style={{ flexShrink: 0, display: "flex", gap: 5, padding: "9px 16px", borderTop: "1px solid var(--border)", background: "var(--bg)" }}>
-              {ACTIONS.map(({ label, color, bg, border, Icon, estado }) => {
-                const isActive = activo?.estado === estado
-                return (
-                  <button key={label} onClick={() => estado && actualizarEstado(estado)} style={{
-                    display: "flex", alignItems: "center", gap: 5, padding: "6px 12px",
-                    borderRadius: "var(--radius-sm)", fontSize: 11, fontWeight: isActive ? 600 : 500,
-                    background: isActive ? bg.replace("0.10", "0.22").replace("0.12", "0.25") : bg,
-                    border: `1px solid ${isActive ? border.replace("0.22", "0.5").replace("0.28", "0.5") : border}`,
-                    color, cursor: estado ? "pointer" : "default", opacity: !estado ? 0.4 : 1, transition: "all 0.15s",
-                  }}
-                    onMouseEnter={e => { if (estado && !isActive) e.currentTarget.style.opacity = "0.7" }}
-                    onMouseLeave={e => { if (estado && !isActive) e.currentTarget.style.opacity = "1" }}
-                  >
-                    <Icon /> {label}
-                  </button>
-                )
-              })}
-            </div>
-
             {/* Input */}
-            <div style={{ flexShrink: 0, padding: "9px 16px 14px", display: "flex", alignItems: "center", gap: 8, background: "var(--bg)" }}>
+            <div style={{ flexShrink: 0, padding: "12px 16px 16px", display: "flex", alignItems: "center", gap: 8, background: "var(--bg)", borderTop: "1px solid var(--border)" }}>
               {bajoControl ? (
                 <input
                   value={inputText}
