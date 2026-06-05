@@ -144,7 +144,6 @@ export default function Bandeja() {
     setBajoControl(activo.bajo_control || false)
     setTyping(false)
 
-    // Suscripción a mensajes del chat
     const chatCh = supabase.channel(`chat-${activo.contact_id}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "n8n_chat_histories",
@@ -156,7 +155,6 @@ export default function Bandeja() {
       })
       .subscribe()
 
-    // Typing indicator via locks table
     const lockCh = supabase.channel(`lock-${activo.contact_id}`)
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "locks",
@@ -381,7 +379,15 @@ export default function Bandeja() {
                     <span style={{ fontSize: 12, fontWeight: 500, color: isAct ? "#e8e8e8" : "#bbb" }}>{t.nombre || "Sin nombre"}</span>
                     <span style={{ fontSize: 9, color: "var(--text-4)", flexShrink: 0, marginLeft: 6 }}>{t.hora_turno || ""}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 7 }}>{t.servicio || "Sin servicio"}</div>
+
+                  {/* ── Preview último mensaje ── */}
+                  <div style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 7 }}>
+                    {t.preview
+                      ? <><span style={{ color: "#555", marginRight: 3 }}>AI:</span>{t.preview.length > 38 ? t.preview.slice(0, 38) + "…" : t.preview}</>
+                      : t.servicio || "Sin servicio"
+                    }
+                  </div>
+
                   <div style={{ display: "flex", gap: 5, alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       <Badge label={t.canal || "Instagram"} {...ca} />
