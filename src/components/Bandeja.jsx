@@ -45,24 +45,12 @@ const CANAL = {
   Instagram: { color: "#D926FF", bg: "rgba(217,38,255,0.10)", border: "rgba(217,38,255,0.22)" },
 }
 
-/* ── Icons ── */
-function SearchIcon() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-}
-function SendIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-}
-function HandIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 11V6a2 2 0 00-2-2 2 2 0 00-2 2"/><path d="M14 10V4a2 2 0 00-2-2 2 2 0 00-2 2v2"/><path d="M10 10.5V6a2 2 0 00-2-2 2 2 0 00-2 2v8"/><path d="M18 8a2 2 0 114 0v6a8 8 0 01-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 012.83-2.82L7 15"/></svg>
-}
-function BotIcon() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M9 11V7a3 3 0 016 0v4"/><circle cx="9" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="16" r="1" fill="currentColor" stroke="none"/></svg>
-}
-function BackIcon() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-}
+function SearchIcon() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> }
+function SendIcon()   { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> }
+function HandIcon()   { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 11V6a2 2 0 00-2-2 2 2 0 00-2 2"/><path d="M14 10V4a2 2 0 00-2-2 2 2 0 00-2 2v2"/><path d="M10 10.5V6a2 2 0 00-2-2 2 2 0 00-2 2v8"/><path d="M18 8a2 2 0 114 0v6a8 8 0 01-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 012.83-2.82L7 15"/></svg> }
+function BotIcon()    { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M9 11V7a3 3 0 016 0v4"/><circle cx="9" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="16" r="1" fill="currentColor" stroke="none"/></svg> }
+function BackIcon()   { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg> }
 
-/* ── Sub-components ── */
 function Avatar({ name = "?", size = 36 }) {
   return (
     <div style={{ width: size, height: size, borderRadius: "50%", background: avatarGradient(name), display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.33, fontWeight: 600, color: "#fff", flexShrink: 0, letterSpacing: "0.3px" }}>
@@ -93,7 +81,6 @@ function TypingIndicator() {
   )
 }
 
-/* ── useIsMobile hook ── */
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   useEffect(() => {
@@ -104,7 +91,6 @@ function useIsMobile() {
   return isMobile
 }
 
-/* ── Main component ── */
 export default function Bandeja() {
   const [turnos,      setTurnos]      = useState([])
   const [activo,      setActivo]      = useState(null)
@@ -116,7 +102,7 @@ export default function Bandeja() {
   const [typing,      setTyping]      = useState(false)
   const [inputText,   setInputText]   = useState("")
   const [enviando,    setEnviando]    = useState(false)
-  const [vistaChat,   setVistaChat]   = useState(false) // móvil: true = chat abierto
+  const [vistaChat,   setVistaChat]   = useState(false)
   const typingTimeoutRef = useRef(null)
   const messagesEndRef   = useRef(null)
   const activoRef        = useRef(null)
@@ -140,33 +126,15 @@ export default function Bandeja() {
     setTyping(false)
 
     const chatCh = supabase.channel(`chat-${activo.contact_id}`)
-      .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "n8n_chat_histories",
-        filter: `session_id=eq.${activo.contact_id}`
-      }, () => {
-        setTyping(false)
-        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-        fetchMensajes(activo.contact_id)
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "n8n_chat_histories", filter: `session_id=eq.${activo.contact_id}` },
+        () => { setTyping(false); if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current); fetchMensajes(activo.contact_id) })
       .subscribe()
 
     const lockCh = supabase.channel(`lock-${activo.contact_id}`)
-      .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "locks",
-        filter: `contact_id=eq.${activo.contact_id}`
-      }, () => {
-        setTyping(true)
-        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-        typingTimeoutRef.current = setTimeout(() => setTyping(false), 60000)
-      })
-      .on("postgres_changes", {
-        event: "DELETE", schema: "public", table: "locks",
-        filter: `contact_id=eq.${activo.contact_id}`
-      }, () => {
-        setTyping(false)
-        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-        setTimeout(() => fetchMensajes(activo.contact_id), 500)
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "locks", filter: `contact_id=eq.${activo.contact_id}` },
+        () => { setTyping(true); if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current); typingTimeoutRef.current = setTimeout(() => setTyping(false), 60000) })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "locks", filter: `contact_id=eq.${activo.contact_id}` },
+        () => { setTyping(false); if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current); setTimeout(() => fetchMensajes(activo.contact_id), 500) })
       .subscribe()
 
     return () => {
@@ -181,17 +149,12 @@ export default function Bandeja() {
   }, [mensajes, typing])
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {})
-    }
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {})
   }, [])
 
   async function fetchTurnos() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from("turnos").select("*")
-      .eq("client_id", CLIENT_ID)
-      .order("updated_at", { ascending: false })
+    const { data, error } = await supabase.from("turnos").select("*").eq("client_id", CLIENT_ID).order("updated_at", { ascending: false })
     if (!error && data) {
       setTurnos(data)
       if (data.length > 0 && !activoRef.current) setActivo(data[0])
@@ -200,11 +163,7 @@ export default function Bandeja() {
   }
 
   async function fetchMensajes(contact_id) {
-    const { data, error } = await supabase
-      .from("n8n_chat_histories").select("*")
-      .eq("session_id", String(contact_id))
-      .order("id", { ascending: true }).limit(100)
-
+    const { data, error } = await supabase.from("n8n_chat_histories").select("*").eq("session_id", String(contact_id)).order("id", { ascending: true }).limit(100)
     if (!error && data) {
       const hora = (id) => new Date(id * 1000 || Date.now()).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit" })
       const parsed = data.flatMap(m => {
@@ -273,8 +232,7 @@ export default function Bandeja() {
   async function tomarControl() {
     if (!activo) return
     const newVal = !bajoControl
-    const { error } = await supabase.from("turnos")
-      .update({ bajo_control: newVal, updated_at: new Date().toISOString() }).eq("id", activo.id)
+    const { error } = await supabase.from("turnos").update({ bajo_control: newVal, updated_at: new Date().toISOString() }).eq("id", activo.id)
     if (!error) {
       setBajoControl(newVal)
       setActivo(prev => ({ ...prev, bajo_control: newVal }))
@@ -287,16 +245,9 @@ export default function Bandeja() {
     setEnviando(true)
     try {
       const textToSend = inputText.trim()
-      await fetch("/api/send-message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscriber_id: activo.contact_id, text: textToSend, canal: activo.canal || "Instagram" })
-      })
+      await fetch("/api/send-message", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscriber_id: activo.contact_id, text: textToSend, canal: activo.canal || "Instagram" }) })
       setInputText("")
-      setMensajes(prev => [...prev, {
-        id: Date.now(), tipo: "user", texto: textToSend,
-        hora: new Date().toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit" })
-      }])
+      setMensajes(prev => [...prev, { id: Date.now(), tipo: "user", texto: textToSend, hora: new Date().toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit" }) }])
     } catch (e) { console.error("Error enviando:", e) }
     setEnviando(false)
   }
@@ -311,10 +262,6 @@ export default function Bandeja() {
     if (isMobile) setVistaChat(true)
   }
 
-  function volverALista() {
-    setVistaChat(false)
-  }
-
   const filtrados = turnos
     .filter(t => {
       if (filtro === "Archivados") return t.estado === "archivado"
@@ -325,25 +272,12 @@ export default function Bandeja() {
     .filter(t => {
       if (!busqueda.trim()) return true
       const q = busqueda.toLowerCase()
-      return (
-        (t.nombre || "").toLowerCase().includes(q) ||
-        (t.servicio || "").toLowerCase().includes(q) ||
-        (t.preview || "").toLowerCase().includes(q)
-      )
+      return (t.nombre || "").toLowerCase().includes(q) || (t.servicio || "").toLowerCase().includes(q) || (t.preview || "").toLowerCase().includes(q)
     })
 
-  /* ── Panel izquierdo — lista ── */
+  /* ── Panel lista ── */
   const PanelLista = (
-    <div style={{
-      width: isMobile ? "100%" : 280,
-      flexShrink: 0,
-      background: "var(--surface-1)",
-      borderRight: isMobile ? "none" : "1px solid var(--border)",
-      display: "flex", flexDirection: "column",
-      height: "100%",
-      // en móvil: ocultar si vistaChat está abierta
-      ...(isMobile && vistaChat ? { display: "none" } : {})
-    }}>
+    <div style={{ width: isMobile ? "100%" : 280, flexShrink: 0, background: "var(--surface-1)", borderRight: isMobile ? "none" : "1px solid var(--border)", display: isMobile && vistaChat ? "none" : "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "16px 14px 12px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", letterSpacing: "-0.2px" }}>Conversaciones</span>
@@ -351,35 +285,22 @@ export default function Bandeja() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface-2)", borderRadius: "var(--radius-sm)", padding: "8px 11px", border: `1px solid ${busqueda ? "rgba(123,47,255,0.4)" : "var(--border-2)"}`, transition: "border-color 0.15s" }}>
           <span style={{ color: "var(--text-3)", display: "flex", alignItems: "center", flexShrink: 0 }}><SearchIcon /></span>
-          <input
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar contacto..."
-            style={{ background: "none", border: "none", outline: "none", fontSize: 11, color: "var(--text-1)", width: "100%", fontFamily: "inherit" }}
-          />
-          {busqueda && (
-            <button onClick={() => setBusqueda("")} style={{ background: "none", border: "none", color: "var(--text-4)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
-          )}
+          <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar contacto..." style={{ background: "none", border: "none", outline: "none", fontSize: 11, color: "var(--text-1)", width: "100%", fontFamily: "inherit" }} />
+          {busqueda && <button onClick={() => setBusqueda("")} style={{ background: "none", border: "none", color: "var(--text-4)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>}
         </div>
       </div>
-
       <div style={{ display: "flex", gap: 5, padding: "0 14px 12px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
         {["Todos", "WhatsApp", "Instagram", "Archivados"].map(f => (
           <button key={f} onClick={() => setFiltro(f)} style={{ fontSize: 10, fontWeight: filtro === f ? 500 : 400, padding: "4px 10px", borderRadius: 20, background: filtro === f ? "var(--primary-10)" : "rgba(255,255,255,0.02)", border: filtro === f ? "1px solid var(--primary-25)" : "1px solid #1e1e1e", color: filtro === f ? "#c9a0ff" : "var(--text-3)", transition: "all 0.15s" }}>{f}</button>
         ))}
       </div>
-
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {loading ? (
-          <div style={{ padding: 28, textAlign: "center", fontSize: 11, color: "var(--text-4)" }}>Cargando...</div>
-        ) : filtrados.length === 0 ? (
-          <div style={{ padding: 28, textAlign: "center", fontSize: 11, color: "var(--text-4)" }}>
-            {busqueda ? `Sin resultados para "${busqueda}"` : "Sin conversaciones"}
-          </div>
-        ) : filtrados.map(t => {
+        {loading ? <div style={{ padding: 28, textAlign: "center", fontSize: 11, color: "var(--text-4)" }}>Cargando...</div>
+        : filtrados.length === 0 ? <div style={{ padding: 28, textAlign: "center", fontSize: 11, color: "var(--text-4)" }}>{busqueda ? `Sin resultados para "${busqueda}"` : "Sin conversaciones"}</div>
+        : filtrados.map(t => {
           const isAct = activo?.id === t.id
-          const es    = ESTADO[t.estado] || ESTADO.confirmado
-          const ca    = CANAL[t.canal]   || CANAL.Instagram
+          const es = ESTADO[t.estado] || ESTADO.confirmado
+          const ca = CANAL[t.canal] || CANAL.Instagram
           return (
             <div key={t.id} onClick={() => abrirChat(t)}
               style={{ display: "flex", gap: 10, padding: "12px 14px", borderBottom: "1px solid #161616", borderLeft: isAct && !isMobile ? "2px solid #7B2FFF" : "2px solid transparent", background: isAct && !isMobile ? "rgba(123,47,255,0.07)" : "transparent", cursor: "pointer", transition: "background 0.15s" }}
@@ -388,11 +309,7 @@ export default function Bandeja() {
             >
               <div style={{ position: "relative" }}>
                 <Avatar name={t.nombre || "?"} size={isMobile ? 42 : 36} />
-                {t.bajo_control && (
-                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 12, height: 12, borderRadius: "50%", background: "#f07070", border: "2px solid var(--surface-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff" }} />
-                  </div>
-                )}
+                {t.bajo_control && <div style={{ position: "absolute", bottom: -1, right: -1, width: 12, height: 12, borderRadius: "50%", background: "#f07070", border: "2px solid var(--surface-1)", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff" }} /></div>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
@@ -400,10 +317,7 @@ export default function Bandeja() {
                   <span style={{ fontSize: 9, color: "var(--text-4)", flexShrink: 0, marginLeft: 6 }}>{t.hora_turno || ""}</span>
                 </div>
                 <div style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: isMobile ? 5 : 7 }}>
-                  {t.preview
-                    ? <><span style={{ color: "#555", marginRight: 3 }}>AI:</span>{t.preview.length > 38 ? t.preview.slice(0, 38) + "…" : t.preview}</>
-                    : <span style={{ color: "#333" }}>{t.servicio || "Sin servicio"}</span>
-                  }
+                  {t.preview ? <><span style={{ color: "#555", marginRight: 3 }}>AI:</span>{t.preview.length > 38 ? t.preview.slice(0, 38) + "…" : t.preview}</> : <span style={{ color: "#333" }}>{t.servicio || "Sin servicio"}</span>}
                 </div>
                 <div style={{ display: "flex", gap: 5, alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -414,11 +328,11 @@ export default function Bandeja() {
                   <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                     {t.estado === "archivado" ? (
                       <>
-                        <button onClick={e => desarchivar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 5px", borderRadius: 4, fontSize: 11, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#1D9E75"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"} title="Desarchivar">↩</button>
-                        <button onClick={e => eliminar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 4px", borderRadius: 4, fontSize: 13, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#f07070"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"} title="Eliminar">🗑</button>
+                        <button onClick={e => desarchivar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 5px", borderRadius: 4, fontSize: 11, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#1D9E75"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"}>↩</button>
+                        <button onClick={e => eliminar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 4px", borderRadius: 4, fontSize: 13, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#f07070"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"}>🗑</button>
                       </>
                     ) : (
-                      <button onClick={e => archivar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 4px", borderRadius: 4, fontSize: 14, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#f07070"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"} title="Archivar">×</button>
+                      <button onClick={e => archivar(t.id, e)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", padding: "2px 4px", borderRadius: 4, fontSize: 14, lineHeight: 1 }} onMouseEnter={e => e.currentTarget.style.color = "#f07070"} onMouseLeave={e => e.currentTarget.style.color = "#2a2a2a"}>×</button>
                     )}
                   </div>
                 </div>
@@ -430,21 +344,15 @@ export default function Bandeja() {
     </div>
   )
 
-  /* ── Panel derecho — chat ── */
+  /* ── Panel chat ── */
   const PanelChat = (
-    <div style={{
-      flex: 1, display: "flex", flexDirection: "column", minWidth: 0,
-      width: isMobile ? "100%" : undefined,
-      // en móvil: ocultar si NO está en vistaChat
-      ...(isMobile && !vistaChat ? { display: "none" } : {})
-    }}>
+    <div style={{ flex: 1, display: isMobile && !vistaChat ? "none" : "flex", flexDirection: "column", minWidth: 0, width: isMobile ? "100%" : undefined, height: "100%" }}>
       {activo ? (
         <>
-          {/* Header */}
-          <div style={{ flexShrink: 0, padding: isMobile ? "10px 14px" : "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10, background: bajoControl ? "rgba(240,112,112,0.05)" : "var(--surface-1)", transition: "background 0.3s" }}>
-            {/* Botón volver en móvil */}
+          {/* Header — siempre fijo arriba */}
+          <div style={{ flexShrink: 0, padding: isMobile ? "10px 14px" : "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10, background: bajoControl ? "rgba(240,112,112,0.05)" : "var(--surface-1)", transition: "background 0.3s", zIndex: 10 }}>
             {isMobile && (
-              <button onClick={volverALista} style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", display: "flex", alignItems: "center", padding: "4px 4px 4px 0", marginRight: 2 }}>
+              <button onClick={() => setVistaChat(false)} style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", display: "flex", alignItems: "center", padding: "4px 4px 4px 0", marginRight: 2 }}>
                 <BackIcon />
               </button>
             )}
@@ -456,31 +364,19 @@ export default function Bandeja() {
                 {bajoControl && <span style={{ marginLeft: 6, color: "#f07070", fontWeight: 500 }}>● En control</span>}
               </div>
             </div>
-            <button onClick={tomarControl} style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: isMobile ? "6px 10px" : "7px 14px",
-              background: bajoControl ? "rgba(240,112,112,0.12)" : "var(--primary-10)",
-              border: `1px solid ${bajoControl ? "rgba(240,112,112,0.35)" : "var(--primary-25)"}`,
-              borderRadius: "var(--radius-sm)", fontSize: isMobile ? 10 : 11, fontWeight: 500,
-              color: bajoControl ? "#f07070" : "#c9a0ff", transition: "all 0.15s", flexShrink: 0,
-              whiteSpace: "nowrap"
-            }}>
+            <button onClick={tomarControl} style={{ display: "flex", alignItems: "center", gap: 5, padding: isMobile ? "6px 10px" : "7px 14px", background: bajoControl ? "rgba(240,112,112,0.12)" : "var(--primary-10)", border: `1px solid ${bajoControl ? "rgba(240,112,112,0.35)" : "var(--primary-25)"}`, borderRadius: "var(--radius-sm)", fontSize: isMobile ? 10 : 11, fontWeight: 500, color: bajoControl ? "#f07070" : "#c9a0ff", transition: "all 0.15s", flexShrink: 0, whiteSpace: "nowrap" }}>
               {bajoControl ? <><BotIcon /> {isMobile ? "Liberar" : "Liberar bot"}</> : <><HandIcon /> {isMobile ? "Tomar" : "Tomar conversación"}</>}
             </button>
           </div>
 
-          {/* Messages */}
-          <div style={{ flex: 1, padding: isMobile ? "16px 14px" : "20px 22px", display: "flex", flexDirection: "column", justifyContent: "flex-start", overflowY: "auto", background: "var(--bg)", backgroundImage: "radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "22px 22px" }}>
+          {/* Mensajes — scroll interno, nunca tapa el header ni el input */}
+          <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "20px 22px", display: "flex", flexDirection: "column", background: "var(--bg)", backgroundImage: "radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "22px 22px", minHeight: 0 }}>
             {mensajes.map((m, i) => {
               const first = isFirst(mensajes, i)
               const last  = isLast(mensajes, i)
               return (
                 <div key={m.id} style={{ maxWidth: isMobile ? "80%" : "65%", alignSelf: m.tipo === "user" ? "flex-end" : "flex-start", marginTop: first ? (i === 0 ? 0 : 12) : 3 }}>
-                  {m.tipo === "bot" && first && (
-                    <div style={{ marginBottom: 4 }}>
-                      <span style={{ fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 20, background: "var(--primary-10)", color: "#7B2FFF", border: "1px solid rgba(123,47,255,0.22)", letterSpacing: "0.4px" }}>AI</span>
-                    </div>
-                  )}
+                  {m.tipo === "bot" && first && <div style={{ marginBottom: 4 }}><span style={{ fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 20, background: "var(--primary-10)", color: "#7B2FFF", border: "1px solid rgba(123,47,255,0.22)", letterSpacing: "0.4px" }}>AI</span></div>}
                   <div style={{ padding: "8px 13px", borderRadius: bubbleRadius(m.tipo, first, last), background: m.tipo === "user" ? "rgba(123,47,255,0.16)" : "var(--surface-2)", color: m.tipo === "user" ? "#ddd0ff" : "#999", border: `1px solid ${m.tipo === "user" ? "rgba(123,47,255,0.28)" : "var(--border-2)"}`, fontSize: isMobile ? 13 : 12, lineHeight: 1.55 }}>
                     {m.texto}
                   </div>
@@ -492,20 +388,11 @@ export default function Bandeja() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div style={{ flexShrink: 0, padding: isMobile ? "10px 12px 20px" : "12px 16px 16px", display: "flex", alignItems: "center", gap: 8, background: "var(--bg)", borderTop: "1px solid var(--border)" }}>
+          {/* Input — siempre fijo abajo, respeta safe area */}
+          <div style={{ flexShrink: 0, padding: isMobile ? "10px 12px" : "12px 16px 16px", paddingBottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "16px", display: "flex", alignItems: "center", gap: 8, background: "var(--bg)", borderTop: "1px solid var(--border)" }}>
             {bajoControl ? (
-              <input
-                value={inputText}
-                onChange={e => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Escribir mensaje..."
-                autoFocus
-                style={{
-                  flex: 1, background: "rgba(240,112,112,0.05)", border: "1px solid rgba(240,112,112,0.3)",
-                  borderRadius: "var(--radius)", padding: isMobile ? "11px 14px" : "9px 14px", fontSize: isMobile ? 14 : 12,
-                  color: "var(--text-1)", outline: "none", fontFamily: "inherit", transition: "border-color 0.15s",
-                }}
+              <input value={inputText} onChange={e => setInputText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Escribir mensaje..." autoFocus
+                style={{ flex: 1, background: "rgba(240,112,112,0.05)", border: "1px solid rgba(240,112,112,0.3)", borderRadius: "var(--radius)", padding: isMobile ? "11px 14px" : "9px 14px", fontSize: isMobile ? 14 : 12, color: "var(--text-1)", outline: "none", fontFamily: "inherit", transition: "border-color 0.15s" }}
                 onFocus={e => e.target.style.borderColor = "rgba(240,112,112,0.6)"}
                 onBlur={e => e.target.style.borderColor = "rgba(240,112,112,0.3)"}
               />
@@ -514,14 +401,11 @@ export default function Bandeja() {
                 Tomá el control para escribir...
               </div>
             )}
-            <button onClick={bajoControl ? enviarMensaje : undefined} disabled={!bajoControl || enviando} style={{
-              width: isMobile ? 40 : 34, height: isMobile ? 40 : 34, flexShrink: 0, borderRadius: 9,
-              background: bajoControl ? "#f07070" : "var(--surface-3)",
-              border: "none", display: "flex", alignItems: "center", justifyContent: "center",
-              color: bajoControl ? "#fff" : "var(--text-4)",
-              boxShadow: bajoControl ? "0 2px 10px rgba(240,112,112,0.38)" : "none",
-              cursor: bajoControl ? "pointer" : "default", transition: "all 0.2s", opacity: enviando ? 0.6 : 1,
-            }}>
+            <button onClick={bajoControl ? enviarMensaje : undefined} disabled={!bajoControl || enviando}
+              style={{ width: isMobile ? 40 : 34, height: isMobile ? 40 : 34, flexShrink: 0, borderRadius: 9, background: bajoControl ? "#f07070" : "var(--surface-3)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", color: bajoControl ? "#fff" : "var(--text-4)", boxShadow: bajoControl ? "0 2px 10px rgba(240,112,112,0.38)" : "none", cursor: bajoControl ? "pointer" : "default", transition: "all 0.2s", opacity: enviando ? 0.6 : 1 }}
+              onMouseEnter={e => { if (bajoControl) { e.currentTarget.style.background = "#e05555" } }}
+              onMouseLeave={e => { if (bajoControl) { e.currentTarget.style.background = "#f07070" } }}
+            >
               <SendIcon />
             </button>
           </div>
@@ -536,7 +420,7 @@ export default function Bandeja() {
   )
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "var(--bg)", overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100%", background: "var(--bg)", overflow: "hidden" }}>
       {PanelLista}
       {!isMobile && PanelChat}
       {isMobile && vistaChat && PanelChat}
