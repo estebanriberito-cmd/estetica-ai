@@ -110,6 +110,7 @@ export default function App() {
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   gap: 4,
                   padding: "10px 4px",
+                  paddingBottom: "max(10px, env(safe-area-inset-bottom))",
                   background: "none", border: "none", cursor: "pointer",
                   color: active ? "#c9a0ff" : "#3a3a3a",
                   transition: "color 0.15s",

@@ -65,6 +65,23 @@ function Toggle({ checked, onChange }) {
   )
 }
 
+function TimeInput({ value, onChange }) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <input
+      type="time" value={value} onChange={onChange}
+      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+      style={{
+        fontSize: 13, color: "#ccc", background: "var(--bg)",
+        border: `1px solid ${focused ? "rgba(123,47,255,0.45)" : "var(--border-2)"}`,
+        borderRadius: "var(--radius-sm)", padding: "6px 8px", outline: "none",
+        transition: "border-color 0.15s", fontFamily: "inherit",
+        colorScheme: "dark", width: 90,
+      }}
+    />
+  )
+}
+
 export default function Configuracion() {
   const [seccion,   setSeccion]   = useState(null) // null = lista en móvil
   const [config,    setConfig]    = useState(null)
@@ -178,16 +195,30 @@ export default function Configuracion() {
             </div>
           )}
           {(config.horarios || []).map((h, i) => (
-            <div key={h.dia} style={{ display: "flex", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid var(--border)", gap: 12 }}>
+            <div key={h.dia} style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid var(--border)", gap: 12, flexWrap: "wrap" }}>
               <div style={{ fontSize: 13, color: "var(--text-2)", width: 90, flexShrink: 0 }}>{h.dia}</div>
               <Toggle checked={h.activo} onChange={() => {
                 const nuevos = [...config.horarios]
                 nuevos[i] = { ...nuevos[i], activo: !nuevos[i].activo }
                 setConfig({ ...config, horarios: nuevos })
               }} />
-              <span style={{ fontSize: 12, color: h.activo ? "var(--text-2)" : "var(--text-4)" }}>
-                {h.activo ? `${h.desde} — ${h.hasta}` : "Cerrado"}
-              </span>
+              {h.activo ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <TimeInput value={h.desde || "09:00"} onChange={e => {
+                    const nuevos = [...config.horarios]
+                    nuevos[i] = { ...nuevos[i], desde: e.target.value }
+                    setConfig({ ...config, horarios: nuevos })
+                  }} />
+                  <span style={{ fontSize: 12, color: "var(--text-4)" }}>—</span>
+                  <TimeInput value={h.hasta || "19:00"} onChange={e => {
+                    const nuevos = [...config.horarios]
+                    nuevos[i] = { ...nuevos[i], hasta: e.target.value }
+                    setConfig({ ...config, horarios: nuevos })
+                  }} />
+                </div>
+              ) : (
+                <span style={{ fontSize: 12, color: "var(--text-4)" }}>Cerrado</span>
+              )}
             </div>
           ))}
         </div>
