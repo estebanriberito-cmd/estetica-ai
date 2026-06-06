@@ -45,7 +45,7 @@ const NavCalIcon = ({ size = 20 }) => (
 
 const NAV = [
   { id: "bandeja",       label: "Bandeja",      Icon: InboxIcon    },
-  { id: "calendario",    label: "Calendar",     Icon: NavCalIcon   },
+  { id: "calendario",    label: "Calendario",   Icon: NavCalIcon   },
   { id: "metricas",      label: "Métricas",     Icon: ChartIcon    },
   { id: "configuracion", label: "Config",       Icon: GearIcon     },
 ]

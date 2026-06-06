@@ -124,7 +124,7 @@ export default function Calendario() {
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: isMobile ? "12px 10px" : "16px 22px", display: "flex", flexDirection: isMobile ? "column" : "row", gap: 16 }}>
+      <div style={{ flex: 1, padding: isMobile ? "12px 10px" : "16px 22px", paddingBottom: isMobile ? "max(80px, calc(env(safe-area-inset-bottom) + 70px))" : "16px", display: "flex", flexDirection: isMobile ? "column" : "row", gap: 16, overflowY: "auto" }}>
 
         {/* Grilla calendario */}
         <div style={{ flex: isMobile ? "none" : 1 }}>
