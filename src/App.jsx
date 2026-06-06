@@ -3,6 +3,7 @@ import Bandeja from "./components/Bandeja"
 import Turnos from "./components/Turnos"
 import Metricas from "./components/Metricas"
 import Configuracion from "./components/Configuracion"
+import Calendario from "./components/Calendario"
 
 /* ── Icons ── */
 const InboxIcon = ({ size = 20 }) => (
@@ -33,11 +34,20 @@ const GearIcon = ({ size = 20 }) => (
   </svg>
 )
 
+const NavCalIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+)
+
 const NAV = [
   { id: "bandeja",       label: "Bandeja",      Icon: InboxIcon    },
-  { id: "turnos",        label: "Turnos",        Icon: CalendarIcon },
-  { id: "metricas",      label: "Métricas",      Icon: ChartIcon    },
-  { id: "configuracion", label: "Config",        Icon: GearIcon     },
+  { id: "calendario",    label: "Calendar",     Icon: NavCalIcon   },
+  { id: "metricas",      label: "Métricas",     Icon: ChartIcon    },
+  { id: "configuracion", label: "Config",       Icon: GearIcon     },
 ]
 
 function useIsMobile() {
@@ -57,6 +67,7 @@ export default function App() {
   const renderPage = () => {
     if (page === "bandeja")       return <Bandeja />
     if (page === "turnos")        return <Turnos />
+    if (page === "calendario")    return <Calendario />
     if (page === "metricas")      return <Metricas />
     if (page === "configuracion") return <Configuracion />
   }
