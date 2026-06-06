@@ -256,10 +256,15 @@ export default function Bandeja() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarMensaje() }
   }
 
-  function abrirChat(t) {
+  async function abrirChat(t) {
     setActivo(t)
     setBajoControl(t.bajo_control || false)
     if (isMobile) setVistaChat(true)
+    // Marcar como leído
+    if (t.unread) {
+      await supabase.from("turnos").update({ unread: false }).eq("id", t.id)
+      setTurnos(prev => prev.map(x => x.id === t.id ? { ...x, unread: false } : x))
+    }
   }
 
   const filtrados = turnos
@@ -310,6 +315,7 @@ export default function Bandeja() {
               <div style={{ position: "relative" }}>
                 <Avatar name={t.nombre || "?"} size={isMobile ? 42 : 36} />
                 {t.bajo_control && <div style={{ position: "absolute", bottom: -1, right: -1, width: 12, height: 12, borderRadius: "50%", background: "#f07070", border: "2px solid var(--surface-1)", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff" }} /></div>}
+                {t.unread && !t.bajo_control && <div style={{ position: "absolute", top: -1, right: -1, width: 10, height: 10, borderRadius: "50%", background: "#7B2FFF", border: "2px solid var(--surface-1)", boxShadow: "0 0 6px rgba(123,47,255,0.8)" }} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
@@ -317,7 +323,13 @@ export default function Bandeja() {
                   <span style={{ fontSize: 9, color: "var(--text-4)", flexShrink: 0, marginLeft: 6 }}>{t.hora_turno || ""}</span>
                 </div>
                 <div style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: isMobile ? 5 : 7 }}>
-                  {t.preview ? <><span style={{ color: "#555", marginRight: 3 }}>AI:</span>{t.preview.length > 38 ? t.preview.slice(0, 38) + "…" : t.preview}</> : <span style={{ color: "#333" }}>{t.servicio || "Sin servicio"}</span>}
+                  {t.preview
+                    ? <>{t.preview_tipo === "user"
+                        ? <span style={{ color: "#888", marginRight: 3 }}>vos:</span>
+                        : <span style={{ color: "#555", marginRight: 3 }}>AI:</span>
+                      }{t.preview.length > 38 ? t.preview.slice(0, 38) + "…" : t.preview}</>
+                    : <span style={{ color: "#333" }}>{t.servicio || "Sin servicio"}</span>
+                  }
                 </div>
                 <div style={{ display: "flex", gap: 5, alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
