@@ -276,8 +276,8 @@ export default function Calendario() {
                           </div>
                         )}
 
-                        {/* Botón No vino — solo para turnos pasados */}
-                        {isPast && (
+                        {/* Botón No vino — TESTING: mostrar en todos */}
+                        {true && (
                           <div style={{ marginTop: 8 }}>
                             {isNoShow ? (
                               <span style={{
