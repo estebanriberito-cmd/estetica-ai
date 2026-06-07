@@ -32,15 +32,15 @@ function formatHora(date) {
 }
 
 export default function Calendario() {
-  const [eventos,    setEventos]    = useState([])
-  const [loading,    setLoading]    = useState(true)
-  const [error,      setError]      = useState(null)
-  const [hoy]                       = useState(new Date())
-  const [mes,        setMes]        = useState(new Date().getMonth())
-  const [año,        setAño]        = useState(new Date().getFullYear())
-  const [diaActivo,  setDiaActivo]  = useState(null)
-  const [noShowMap,  setNoShowMap]  = useState({})   // { event_id: true/false }
-  const [noShowLoading, setNoShowLoading] = useState({}) // { event_id: true } mientras se guarda
+  const [eventos,       setEventos]       = useState([])
+  const [loading,       setLoading]       = useState(true)
+  const [error,         setError]         = useState(null)
+  const [hoy]                             = useState(new Date())
+  const [mes,           setMes]           = useState(new Date().getMonth())
+  const [año,           setAño]           = useState(new Date().getFullYear())
+  const [diaActivo,     setDiaActivo]     = useState(null)
+  const [noShowMap,     setNoShowMap]     = useState({})
+  const [noShowLoading, setNoShowLoading] = useState({})
   const isMobile = useIsMobile()
 
   useEffect(() => {
@@ -49,14 +49,10 @@ export default function Calendario() {
 
     const channel = supabase
       .channel("calendario-turnos-watch")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "turnos" },
-        () => {
-          setTimeout(fetchEventos, 2500)
-          fetchNoShow()
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "turnos" }, () => {
+        setTimeout(fetchEventos, 2500)
+        fetchNoShow()
+      })
       .subscribe()
 
     return () => supabase.removeChannel(channel)
@@ -76,28 +72,53 @@ export default function Calendario() {
     setLoading(false)
   }
 
+  // Construye el map con dos claves por turno: event_id Y fecha_hora
+  // Así funciona aunque el event_id sea NULL en Supabase
   async function fetchNoShow() {
     const { data } = await supabase
       .from("turnos")
-      .select("event_id, no_show")
+      .select("event_id, fecha_hora, no_show")
       .eq("client_id", "lumina_estetica")
     if (data) {
       const map = {}
-      data.forEach(t => { if (t.event_id) map[t.event_id] = t.no_show })
+      data.forEach(t => {
+        if (t.event_id) map[t.event_id] = t.no_show
+        if (t.fecha_hora) map[t.fecha_hora.slice(0, 19)] = t.no_show
+      })
       setNoShowMap(map)
     }
   }
 
-  async function marcarNoVino(eventId) {
-    // Optimistic update
-    setNoShowMap(prev => ({ ...prev, [eventId]: true }))
-    setNoShowLoading(prev => ({ ...prev, [eventId]: true }))
+  // Recibe el evento completo para poder usar fecha_hora como fallback
+  async function marcarNoVino(ev) {
+    const fechaKey = ev.start?.dateTime?.slice(0, 19)
+
+    // Optimistic update por ambas claves
+    setNoShowMap(prev => ({
+      ...prev,
+      [ev.id]: true,
+      ...(fechaKey ? { [fechaKey]: true } : {}),
+    }))
+    setNoShowLoading(prev => ({ ...prev, [ev.id]: true }))
+
+    // Intento 1: por event_id
     await supabase
       .from("turnos")
       .update({ no_show: true })
-      .eq("event_id", eventId)
+      .eq("event_id", ev.id)
       .eq("client_id", "lumina_estetica")
-    setNoShowLoading(prev => ({ ...prev, [eventId]: false }))
+
+    // Intento 2 (fallback): por fecha_hora — cubre rows con event_id NULL
+    if (fechaKey) {
+      await supabase
+        .from("turnos")
+        .update({ no_show: true })
+        .eq("fecha_hora", fechaKey)
+        .eq("client_id", "lumina_estetica")
+    }
+
+    setNoShowLoading(prev => ({ ...prev, [ev.id]: false }))
+    await fetchNoShow()
   }
 
   const eventosMes = eventos.filter(ev => {
@@ -218,15 +239,9 @@ export default function Calendario() {
             </div>
           ) : diaActivo ? (
             <div>
-              {/* Botón volver */}
               <button
                 onClick={() => setDiaActivo(null)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 4,
-                  fontSize: 11, color: "#c9a0ff", background: "transparent",
-                  border: "none", cursor: "pointer", padding: "0 0 10px 0",
-                  fontWeight: 500, opacity: 0.8,
-                }}
+                style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#c9a0ff", background: "transparent", border: "none", cursor: "pointer", padding: "0 0 10px 0", fontWeight: 500, opacity: 0.8 }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "1"}
                 onMouseLeave={e => e.currentTarget.style.opacity = "0.8"}
               >
@@ -245,62 +260,39 @@ export default function Calendario() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {eventosDia.map(ev => {
                     const { start, end } = parseEventTime(ev)
-                    const isPast   = start && start < new Date()
-                    const isNoShow = noShowMap[ev.id] === true
-                    const isSaving = noShowLoading[ev.id] === true
+                    const fechaKey  = ev.start?.dateTime?.slice(0, 19)
+                    const isPast    = start && start < new Date()
+                    const isNoShow  = noShowMap[ev.id] === true || noShowMap[fechaKey] === true
+                    const isSaving  = noShowLoading[ev.id] === true
                     const borderColor = isNoShow ? "#f07070" : "#7B2FFF"
 
                     return (
-                      <div key={ev.id} style={{
-                        background: "var(--surface-2)",
-                        border: "1px solid var(--border-2)",
-                        borderLeft: `3px solid ${borderColor}`,
-                        borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
-                        padding: "10px 12px",
-                        transition: "border-left-color 0.2s",
-                      }}>
+                      <div key={ev.id} style={{ background: "var(--surface-2)", border: "1px solid var(--border-2)", borderLeft: `3px solid ${borderColor}`, borderRadius: "0 var(--radius-sm) var(--radius-sm) 0", padding: "10px 12px", transition: "border-left-color 0.2s" }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: "#ddd", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {ev.summary || "Sin título"}
                         </div>
-
                         {start && (
                           <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#aaa" }}>
                             <ClockIcon />
                             {formatHora(start)}{end ? ` — ${formatHora(end)}` : ""}
                           </div>
                         )}
-
                         {ev.description && (
-                          <div style={{ fontSize: 10, color: "var(--text-4)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {ev.description}
-                          </div>
+                          <div style={{ fontSize: 10, color: "var(--text-4)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.description}</div>
                         )}
 
-                        {/* Botón No vino — TESTING: mostrar en todos */}
-                        {true && (
+                        {/* Botón No vino — solo para turnos pasados */}
+                        {isPast && (
                           <div style={{ marginTop: 8 }}>
                             {isNoShow ? (
-                              <span style={{
-                                fontSize: 10, color: "#f07070",
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                                background: "rgba(240,112,112,0.08)",
-                                border: "1px solid rgba(240,112,112,0.2)",
-                                padding: "2px 7px", borderRadius: 4,
-                              }}>
+                              <span style={{ fontSize: 10, color: "#f07070", display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(240,112,112,0.08)", border: "1px solid rgba(240,112,112,0.2)", padding: "2px 7px", borderRadius: 4 }}>
                                 ✕ No vino
                               </span>
                             ) : (
                               <button
-                                onClick={() => marcarNoVino(ev.id)}
+                                onClick={() => marcarNoVino(ev)}
                                 disabled={isSaving}
-                                style={{
-                                  fontSize: 10, padding: "3px 9px", borderRadius: 4,
-                                  background: "rgba(240,112,112,0.08)",
-                                  border: "1px solid rgba(240,112,112,0.25)",
-                                  color: "#f07070", cursor: isSaving ? "not-allowed" : "pointer",
-                                  opacity: isSaving ? 0.5 : 1,
-                                  transition: "opacity 0.15s",
-                                }}
+                                style={{ fontSize: 10, padding: "3px 9px", borderRadius: 4, background: "rgba(240,112,112,0.08)", border: "1px solid rgba(240,112,112,0.25)", color: "#f07070", cursor: isSaving ? "not-allowed" : "pointer", opacity: isSaving ? 0.5 : 1, transition: "opacity 0.15s" }}
                                 onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = "rgba(240,112,112,0.15)" }}
                                 onMouseLeave={e => { e.currentTarget.style.background = "rgba(240,112,112,0.08)" }}
                               >
@@ -322,15 +314,11 @@ export default function Calendario() {
             </div>
           )}
 
-          {/* Próximos turnos — solo cuando no hay día activo */}
           {!diaActivo && !loading && !error && (
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-4)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Próximos</div>
               {eventos
-                .filter(ev => {
-                  const { start } = parseEventTime(ev)
-                  return start && start >= hoy
-                })
+                .filter(ev => { const { start } = parseEventTime(ev); return start && start >= hoy })
                 .sort((a, b) => parseEventTime(a).start - parseEventTime(b).start)
                 .slice(0, 5)
                 .map(ev => {
