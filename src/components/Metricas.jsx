@@ -21,6 +21,7 @@ function CloseIcon()     { return <svg width="12" height="12" viewBox="0 0 24 24
 function ReIcon()        { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg> }
 function IgIcon()        { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> }
 function WaIcon()        { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> }
+function NoShowIcon()    { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7"/><line x1="17" y1="17" x2="21" y2="21"/><line x1="21" y1="17" x2="17" y2="21"/></svg> }
 
 function parsePrecio(str) {
   if (!str) return 0
@@ -44,7 +45,7 @@ export default function Metricas() {
   async function fetchData() {
     setLoading(true)
     let desde = new Date()
-    if (periodo === "hoy")        desde.setHours(0, 0, 0, 0)
+    if (periodo === "hoy")         desde.setHours(0, 0, 0, 0)
     else if (periodo === "semana") desde.setDate(desde.getDate() - 7)
     else if (periodo === "mes")    desde.setDate(desde.getDate() - 30)
 
@@ -57,14 +58,13 @@ export default function Metricas() {
     setLoading(false)
   }
 
-  // confirmados = estado "confirmado" O "reagendado" (turno activo)
   const confirmados = turnos.filter(t => t.estado === "confirmado" || t.estado === "reagendado").length
   const reagendados = turnos.filter(t => t.estado === "reagendado").length
   const cancelados  = turnos.filter(t => t.estado === "cancelado").length
+  const noShow      = turnos.filter(t => t.no_show === true).length
   const total       = turnos.length
   const conversion  = total > 0 ? Math.round((confirmados / total) * 100) : 0
 
-  // facturación suma confirmados Y reagendados
   const facturacion = turnos
     .filter(t => (t.estado === "confirmado" || t.estado === "reagendado") && t.servicio)
     .reduce((acc, t) => {
@@ -93,8 +93,8 @@ export default function Metricas() {
   const maxDia   = Math.max(...Object.values(porDia), 1)
 
   const KPIS = [
-    { label: "Agendados",   val: total,           color: "#c9a0ff", bg: "rgba(123,47,255,0.08)",  border: "rgba(123,47,255,0.15)"  },
-    { label: "Confirmados", val: confirmados,      color: "#1D9E75", bg: "rgba(29,158,117,0.08)",  border: "rgba(29,158,117,0.15)"  },
+    { label: "Agendados",   val: total,            color: "#c9a0ff", bg: "rgba(123,47,255,0.08)",  border: "rgba(123,47,255,0.15)"  },
+    { label: "Confirmados", val: confirmados,       color: "#1D9E75", bg: "rgba(29,158,117,0.08)",  border: "rgba(29,158,117,0.15)"  },
     {
       label: "Cancelados",
       val: cancelados,
@@ -114,6 +114,12 @@ export default function Metricas() {
       val: cancelados,
       color: cancelados > 0 ? "#f07070" : "var(--text-4)",
       Icon: CloseIcon,
+    },
+    {
+      label: "No vino",
+      val: noShow,
+      color: noShow > 0 ? "#EF9F27" : "var(--text-4)",
+      Icon: NoShowIcon,
     },
     { label: "Por Instagram", val: porCanal.Instagram || 0, color: "#D926FF", Icon: IgIcon },
     { label: "Por WhatsApp",  val: porCanal.WhatsApp  || 0, color: "#1D9E75", Icon: WaIcon },
@@ -171,11 +177,7 @@ export default function Metricas() {
           </div>
 
           {/* Automatización */}
-          <div style={{
-            background: "rgba(123,47,255,0.07)", border: "1px solid rgba(123,47,255,0.18)",
-            borderRadius: "var(--radius)", padding: "14px 16px",
-            display: "flex", alignItems: "center", gap: 14,
-          }}>
+          <div style={{ background: "rgba(123,47,255,0.07)", border: "1px solid rgba(123,47,255,0.18)", borderRadius: "var(--radius)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "var(--primary-10)", border: "1px solid var(--primary-25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#c9a0ff" }}>
               <AIIcon />
             </div>
@@ -189,18 +191,12 @@ export default function Metricas() {
           </div>
 
           {/* Facturación */}
-          <div style={{
-            background: "rgba(29,158,117,0.07)", border: "1px solid rgba(29,158,117,0.18)",
-            borderRadius: "var(--radius)", padding: "14px 16px",
-            display: "flex", alignItems: "center", gap: 14,
-          }}>
+          <div style={{ background: "rgba(29,158,117,0.07)", border: "1px solid rgba(29,158,117,0.18)", borderRadius: "var(--radius)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "rgba(29,158,117,0.10)", border: "1px solid rgba(29,158,117,0.22)", display: "flex", alignItems: "center", justifyContent: "center", color: "#1D9E75" }}>
               <MoneyIcon />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, color: "var(--text-1)", marginBottom: 2 }}>
-                Facturación estimada
-              </div>
+              <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, color: "var(--text-1)", marginBottom: 2 }}>Facturación estimada</div>
               <div style={{ fontSize: 11, color: "var(--text-3)" }}>Basada en {confirmados} turnos confirmados</div>
             </div>
             <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: "#1D9E75", letterSpacing: "-0.5px", flexShrink: 0 }}>
