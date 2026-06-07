@@ -24,12 +24,10 @@ function WaIcon()        { return <svg width="12" height="12" viewBox="0 0 24 24
 
 function parsePrecio(str) {
   if (!str) return 0
-  // Eliminar símbolo $ y espacios, luego quitar puntos de miles (ej: 1.400 → 1400)
-  // y reemplazar coma decimal por punto si existe
   const clean = String(str)
-    .replace(/[^0-9.,]/g, "")  // dejar solo números, punto y coma
-    .replace(/\.(?=\d{3}(?:[,.]|$))/g, "")  // quitar punto si es separador de miles
-    .replace(",", ".")  // normalizar coma decimal
+    .replace(/[^0-9.,]/g, "")
+    .replace(/\.(?=\d{3}(?:[,.]|$))/g, "")
+    .replace(",", ".")
   const n = parseFloat(clean)
   return isNaN(n) ? 0 : n
 }
@@ -46,7 +44,7 @@ export default function Metricas() {
   async function fetchData() {
     setLoading(true)
     let desde = new Date()
-    if (periodo === "hoy")    desde.setHours(0, 0, 0, 0)
+    if (periodo === "hoy")        desde.setHours(0, 0, 0, 0)
     else if (periodo === "semana") desde.setDate(desde.getDate() - 7)
     else if (periodo === "mes")    desde.setDate(desde.getDate() - 30)
 
@@ -59,15 +57,16 @@ export default function Metricas() {
     setLoading(false)
   }
 
-  const confirmados = turnos.filter(t => t.estado === "confirmado").length
+  // confirmados = estado "confirmado" O "reagendado" (turno activo)
+  const confirmados = turnos.filter(t => t.estado === "confirmado" || t.estado === "reagendado").length
   const reagendados = turnos.filter(t => t.estado === "reagendado").length
   const cancelados  = turnos.filter(t => t.estado === "cancelado").length
   const total       = turnos.length
   const conversion  = total > 0 ? Math.round((confirmados / total) * 100) : 0
 
-  // Facturación estimada — suma precios de turnos confirmados
+  // facturación suma confirmados Y reagendados
   const facturacion = turnos
-    .filter(t => t.estado === "confirmado" && t.servicio)
+    .filter(t => (t.estado === "confirmado" || t.estado === "reagendado") && t.servicio)
     .reduce((acc, t) => {
       const match = (config?.servicios || []).find(s =>
         s.nombre?.toLowerCase().trim() === t.servicio?.toLowerCase().trim()
@@ -96,7 +95,13 @@ export default function Metricas() {
   const KPIS = [
     { label: "Agendados",   val: total,           color: "#c9a0ff", bg: "rgba(123,47,255,0.08)",  border: "rgba(123,47,255,0.15)"  },
     { label: "Confirmados", val: confirmados,      color: "#1D9E75", bg: "rgba(29,158,117,0.08)",  border: "rgba(29,158,117,0.15)"  },
-    { label: "Cancelados",  val: cancelados,       color: "#f07070", bg: "rgba(240,112,112,0.08)", border: "rgba(240,112,112,0.15)" },
+    {
+      label: "Cancelados",
+      val: cancelados,
+      color:  cancelados > 0 ? "#f07070" : "var(--text-3)",
+      bg:     cancelados > 0 ? "rgba(240,112,112,0.08)" : "rgba(255,255,255,0.03)",
+      border: cancelados > 0 ? "rgba(240,112,112,0.15)" : "var(--border-2)",
+    },
     { label: "Conversión",  val: `${conversion}%`, color: "#EF9F27", bg: "rgba(239,159,39,0.08)",  border: "rgba(239,159,39,0.15)"  },
   ]
 
@@ -104,7 +109,12 @@ export default function Metricas() {
     { label: "Total turnos",  val: total,       color: "#aaa",    Icon: CalendarIcon },
     { label: "Confirmados",   val: confirmados, color: "#1D9E75", Icon: CheckIcon    },
     { label: "Reagendados",   val: reagendados, color: "#c9a0ff", Icon: ReIcon       },
-    { label: "Cancelados",    val: cancelados,  color: "#f07070", Icon: CloseIcon    },
+    {
+      label: "Cancelados",
+      val: cancelados,
+      color: cancelados > 0 ? "#f07070" : "var(--text-4)",
+      Icon: CloseIcon,
+    },
     { label: "Por Instagram", val: porCanal.Instagram || 0, color: "#D926FF", Icon: IgIcon },
     { label: "Por WhatsApp",  val: porCanal.WhatsApp  || 0, color: "#1D9E75", Icon: WaIcon },
   ]
@@ -118,7 +128,6 @@ export default function Metricas() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg)", overflowY: "auto" }}>
 
-      {/* Header con filtros — scroll horizontal en móvil */}
       <div style={{
         flexShrink: 0, padding: isMobile ? "12px 14px" : "16px 22px",
         borderBottom: "1px solid var(--border)", background: "var(--surface-1)",
@@ -151,7 +160,7 @@ export default function Metricas() {
       ) : (
         <div style={{ padding: isMobile ? "12px 14px" : "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
 
-          {/* KPIs — 2x2 en móvil, 4x1 en desktop */}
+          {/* KPIs */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
             {KPIS.map(({ label, val, color, bg, border }) => (
               <div key={label} style={{ background: bg, border: `1px solid ${border}`, borderRadius: "var(--radius)", padding: isMobile ? "12px 12px" : "14px 16px" }}>
@@ -179,7 +188,7 @@ export default function Metricas() {
             <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: "#1D9E75", letterSpacing: "-0.5px", flexShrink: 0 }}>{conversion}%</div>
           </div>
 
-          {/* Facturación estimada */}
+          {/* Facturación */}
           <div style={{
             background: "rgba(29,158,117,0.07)", border: "1px solid rgba(29,158,117,0.18)",
             borderRadius: "var(--radius)", padding: "14px 16px",
@@ -199,7 +208,7 @@ export default function Metricas() {
             </div>
           </div>
 
-          {/* Gráfico días + Canal — columna única en móvil */}
+          {/* Gráficos */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
             {card(<>
               <div style={{ fontSize: 12, fontWeight: 500, color: "#ccc", marginBottom: 2 }}>Turnos por día</div>
@@ -242,7 +251,7 @@ export default function Metricas() {
             </>)}
           </div>
 
-          {/* Servicios + Resumen — columna única en móvil */}
+          {/* Servicios + Resumen */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
             {card(<>
               <div style={{ fontSize: 12, fontWeight: 500, color: "#ccc", marginBottom: 2 }}>Servicios más pedidos</div>
