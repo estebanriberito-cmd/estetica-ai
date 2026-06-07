@@ -32,18 +32,20 @@ function formatHora(date) {
 }
 
 export default function Calendario() {
-  const [eventos,   setEventos]   = useState([])
-  const [loading,   setLoading]   = useState(true)
-  const [error,     setError]     = useState(null)
-  const [hoy]                     = useState(new Date())
-  const [mes,       setMes]       = useState(new Date().getMonth())
-  const [año,       setAño]       = useState(new Date().getFullYear())
-  const [diaActivo, setDiaActivo] = useState(null)
+  const [eventos,    setEventos]    = useState([])
+  const [loading,    setLoading]    = useState(true)
+  const [error,      setError]      = useState(null)
+  const [hoy]                       = useState(new Date())
+  const [mes,        setMes]        = useState(new Date().getMonth())
+  const [año,        setAño]        = useState(new Date().getFullYear())
+  const [diaActivo,  setDiaActivo]  = useState(null)
+  const [noShowMap,  setNoShowMap]  = useState({})   // { event_id: true/false }
+  const [noShowLoading, setNoShowLoading] = useState({}) // { event_id: true } mientras se guarda
   const isMobile = useIsMobile()
 
-  // FIX 3 — Recarga automática: fetch inicial + suscripción realtime a turnos
   useEffect(() => {
     fetchEventos()
+    fetchNoShow()
 
     const channel = supabase
       .channel("calendario-turnos-watch")
@@ -51,8 +53,8 @@ export default function Calendario() {
         "postgres_changes",
         { event: "*", schema: "public", table: "turnos" },
         () => {
-          // Pequeño delay para que Google Calendar procese el cambio primero
           setTimeout(fetchEventos, 2500)
+          fetchNoShow()
         }
       )
       .subscribe()
@@ -72,6 +74,30 @@ export default function Calendario() {
       setError(e.message)
     }
     setLoading(false)
+  }
+
+  async function fetchNoShow() {
+    const { data } = await supabase
+      .from("turnos")
+      .select("event_id, no_show")
+      .eq("client_id", "lumina_estetica")
+    if (data) {
+      const map = {}
+      data.forEach(t => { if (t.event_id) map[t.event_id] = t.no_show })
+      setNoShowMap(map)
+    }
+  }
+
+  async function marcarNoVino(eventId) {
+    // Optimistic update
+    setNoShowMap(prev => ({ ...prev, [eventId]: true }))
+    setNoShowLoading(prev => ({ ...prev, [eventId]: true }))
+    await supabase
+      .from("turnos")
+      .update({ no_show: true })
+      .eq("event_id", eventId)
+      .eq("client_id", "lumina_estetica")
+    setNoShowLoading(prev => ({ ...prev, [eventId]: false }))
   }
 
   const eventosMes = eventos.filter(ev => {
@@ -192,7 +218,7 @@ export default function Calendario() {
             </div>
           ) : diaActivo ? (
             <div>
-              {/* FIX 2 — Botón volver */}
+              {/* Botón volver */}
               <button
                 onClick={() => setDiaActivo(null)}
                 style={{
@@ -219,18 +245,69 @@ export default function Calendario() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {eventosDia.map(ev => {
                     const { start, end } = parseEventTime(ev)
+                    const isPast   = start && start < new Date()
+                    const isNoShow = noShowMap[ev.id] === true
+                    const isSaving = noShowLoading[ev.id] === true
+                    const borderColor = isNoShow ? "#f07070" : "#7B2FFF"
+
                     return (
-                      <div key={ev.id} style={{ background: "var(--surface-2)", border: "1px solid var(--border-2)", borderLeft: "3px solid #7B2FFF", borderRadius: "0 var(--radius-sm) var(--radius-sm) 0", padding: "10px 12px" }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "#ddd", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.summary || "Sin título"}</div>
-                        {/* FIX 1 — Hora con color visible */}
+                      <div key={ev.id} style={{
+                        background: "var(--surface-2)",
+                        border: "1px solid var(--border-2)",
+                        borderLeft: `3px solid ${borderColor}`,
+                        borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
+                        padding: "10px 12px",
+                        transition: "border-left-color 0.2s",
+                      }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "#ddd", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {ev.summary || "Sin título"}
+                        </div>
+
                         {start && (
                           <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#aaa" }}>
                             <ClockIcon />
                             {formatHora(start)}{end ? ` — ${formatHora(end)}` : ""}
                           </div>
                         )}
+
                         {ev.description && (
-                          <div style={{ fontSize: 10, color: "var(--text-4)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.description}</div>
+                          <div style={{ fontSize: 10, color: "var(--text-4)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ev.description}
+                          </div>
+                        )}
+
+                        {/* Botón No vino — solo para turnos pasados */}
+                        {isPast && (
+                          <div style={{ marginTop: 8 }}>
+                            {isNoShow ? (
+                              <span style={{
+                                fontSize: 10, color: "#f07070",
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                                background: "rgba(240,112,112,0.08)",
+                                border: "1px solid rgba(240,112,112,0.2)",
+                                padding: "2px 7px", borderRadius: 4,
+                              }}>
+                                ✕ No vino
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => marcarNoVino(ev.id)}
+                                disabled={isSaving}
+                                style={{
+                                  fontSize: 10, padding: "3px 9px", borderRadius: 4,
+                                  background: "rgba(240,112,112,0.08)",
+                                  border: "1px solid rgba(240,112,112,0.25)",
+                                  color: "#f07070", cursor: isSaving ? "not-allowed" : "pointer",
+                                  opacity: isSaving ? 0.5 : 1,
+                                  transition: "opacity 0.15s",
+                                }}
+                                onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = "rgba(240,112,112,0.15)" }}
+                                onMouseLeave={e => { e.currentTarget.style.background = "rgba(240,112,112,0.08)" }}
+                              >
+                                {isSaving ? "Guardando..." : "No vino"}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     )
@@ -268,7 +345,6 @@ export default function Calendario() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 11, fontWeight: 500, color: "#ccc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.summary || "Sin título"}</div>
-                        {/* FIX 1 — Hora en próximos con color visible */}
                         <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>{formatHora(start)}</div>
                       </div>
                     </div>
