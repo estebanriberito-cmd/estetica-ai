@@ -260,7 +260,6 @@ export default function Bandeja() {
     setActivo(t)
     setBajoControl(t.bajo_control || false)
     if (isMobile) setVistaChat(true)
-    // Marcar como leído
     if (t.unread) {
       await supabase.from("turnos").update({ unread: false }).eq("id", t.id)
       setTurnos(prev => prev.map(x => x.id === t.id ? { ...x, unread: false } : x))
@@ -361,7 +360,6 @@ export default function Bandeja() {
     <div style={{ flex: 1, display: isMobile && !vistaChat ? "none" : "flex", flexDirection: "column", minWidth: 0, width: isMobile ? "100%" : undefined, height: "100%" }}>
       {activo ? (
         <>
-          {/* Header — siempre fijo arriba */}
           <div style={{ flexShrink: 0, padding: isMobile ? "10px 14px" : "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10, background: bajoControl ? "rgba(240,112,112,0.05)" : "var(--surface-1)", transition: "background 0.3s", zIndex: 10 }}>
             {isMobile && (
               <button onClick={() => setVistaChat(false)} style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", display: "flex", alignItems: "center", padding: "4px 4px 4px 0", marginRight: 2 }}>
@@ -376,12 +374,15 @@ export default function Bandeja() {
                 {bajoControl && <span style={{ marginLeft: 6, color: "#f07070", fontWeight: 500 }}>● En control</span>}
               </div>
             </div>
+            {/* ── CAMBIO: "Tomar conversación" → "Intervenir personalmente" ── */}
             <button onClick={tomarControl} style={{ display: "flex", alignItems: "center", gap: 5, padding: isMobile ? "6px 10px" : "7px 14px", background: bajoControl ? "rgba(240,112,112,0.12)" : "var(--primary-10)", border: `1px solid ${bajoControl ? "rgba(240,112,112,0.35)" : "var(--primary-25)"}`, borderRadius: "var(--radius-sm)", fontSize: isMobile ? 10 : 11, fontWeight: 500, color: bajoControl ? "#f07070" : "#c9a0ff", transition: "all 0.15s", flexShrink: 0, whiteSpace: "nowrap" }}>
-              {bajoControl ? <><BotIcon /> {isMobile ? "Liberar" : "Liberar bot"}</> : <><HandIcon /> {isMobile ? "Tomar" : "Tomar conversación"}</>}
+              {bajoControl
+                ? <><BotIcon /> {isMobile ? "Liberar" : "Liberar bot"}</>
+                : <><HandIcon /> {isMobile ? "Intervenir" : "Intervenir personalmente"}</>
+              }
             </button>
           </div>
 
-          {/* Mensajes — scroll interno, nunca tapa el header ni el input */}
           <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px 14px" : "20px 22px", display: "flex", flexDirection: "column", background: "var(--bg)", backgroundImage: "radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "22px 22px", minHeight: 0 }}>
             {mensajes.map((m, i) => {
               const first = isFirst(mensajes, i)
@@ -400,7 +401,6 @@ export default function Bandeja() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input — siempre fijo abajo, respeta safe area */}
           <div style={{ flexShrink: 0, padding: isMobile ? "10px 12px" : "12px 16px 16px", paddingBottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "16px", display: "flex", alignItems: "center", gap: 8, background: "var(--bg)", borderTop: "1px solid var(--border)" }}>
             {bajoControl ? (
               <input value={inputText} onChange={e => setInputText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Escribir mensaje..." autoFocus
