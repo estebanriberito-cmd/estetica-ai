@@ -223,7 +223,6 @@ export default function Calendario() {
                     const fechaKey  = ev.start?.dateTime?.slice(0, 19)
                     const nombreEv  = parseNombreFromSummary(ev.summary)
                     const nombreKey = nombreEv ? "nombre:" + nombreEv.toLowerCase().trim() : null
-                    const isPast    = start && start < new Date()
                     const isNoShow  = noShowMap[ev.id] === true
                                    || (fechaKey  && noShowMap[fechaKey]  === true)
                                    || (nombreKey && noShowMap[nombreKey] === true)
@@ -234,20 +233,18 @@ export default function Calendario() {
                         <div style={{ fontSize: 12, fontWeight: 500, color: "#ddd", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.summary || "Sin titulo"}</div>
                         {start && <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#aaa" }}><ClockIcon />{formatHora(start)}{end ? " - " + formatHora(end) : ""}</div>}
                         {ev.description && <div style={{ fontSize: 10, color: "var(--text-4)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.description}</div>}
-                        {isPast && (
-                          <div style={{ marginTop: 8 }}>
-                            {isNoShow ? (
-                              <span style={{ fontSize: 10, color: "#f07070", display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(240,112,112,0.08)", border: "1px solid rgba(240,112,112,0.2)", padding: "2px 7px", borderRadius: 4 }}>x No vino</span>
-                            ) : (
-                              <button onClick={() => marcarNoVino(ev)} disabled={isSaving}
-                                style={{ fontSize: 10, padding: "3px 9px", borderRadius: 4, background: "rgba(240,112,112,0.08)", border: "1px solid rgba(240,112,112,0.25)", color: "#f07070", cursor: isSaving ? "not-allowed" : "pointer", opacity: isSaving ? 0.5 : 1, transition: "opacity 0.15s" }}
-                                onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = "rgba(240,112,112,0.15)" }}
-                                onMouseLeave={e => { e.currentTarget.style.background = "rgba(240,112,112,0.08)" }}>
-                                {isSaving ? "Guardando..." : "No vino"}
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        <div style={{ marginTop: 8 }}>
+                          {isNoShow ? (
+                            <span style={{ fontSize: 10, color: "#f07070", display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(240,112,112,0.08)", border: "1px solid rgba(240,112,112,0.2)", padding: "2px 7px", borderRadius: 4 }}>x No vino</span>
+                          ) : (
+                            <button onClick={() => marcarNoVino(ev)} disabled={isSaving}
+                              style={{ fontSize: 10, padding: "3px 9px", borderRadius: 4, background: "rgba(240,112,112,0.08)", border: "1px solid rgba(240,112,112,0.25)", color: "#f07070", cursor: isSaving ? "not-allowed" : "pointer", opacity: isSaving ? 0.5 : 1, transition: "opacity 0.15s" }}
+                              onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = "rgba(240,112,112,0.15)" }}
+                              onMouseLeave={e => { e.currentTarget.style.background = "rgba(240,112,112,0.08)" }}>
+                              {isSaving ? "Guardando..." : "No vino"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
