@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../supabase"
 
+const CLIENT_ID = import.meta.env.VITE_CLIENT_ID || "lumina_estetica"
+
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   useEffect(() => {
@@ -29,6 +31,15 @@ function parseEventTime(event) {
 function formatHora(date) {
   if (!date) return ""
   return date.toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit" })
+}
+
+// Extrae el nombre desde el summary del evento
+// Formato esperado: "servicio — Nombre" o simplemente "Nombre"
+function parseNombreFromSummary(summary = "") {
+  if (!summary) return null
+  const parts = summary.split(" — ")
+  if (parts.length >= 2) return parts[parts.length - 1].trim()
+  return summary.trim()
 }
 
 export default function Calendario() {
@@ -72,53 +83,78 @@ export default function Calendario() {
     setLoading(false)
   }
 
-  // Construye el map con dos claves por turno: event_id Y fecha_hora
-  // Así funciona aunque el event_id sea NULL en Supabase
   async function fetchNoShow() {
     const { data } = await supabase
       .from("turnos")
-      .select("event_id, fecha_hora, no_show")
-      .eq("client_id", "lumina_estetica")
+      .select("id, event_id, fecha_hora, no_show, nombre")
+      .eq("client_id", CLIENT_ID)
     if (data) {
       const map = {}
       data.forEach(t => {
-        if (t.event_id) map[t.event_id] = t.no_show
+        if (t.event_id)   map[t.event_id] = t.no_show
         if (t.fecha_hora) map[t.fecha_hora.slice(0, 19)] = t.no_show
+        if (t.nombre)     map[`nombre:${t.nombre.toLowerCase().trim()}`] = t.no_show
       })
       setNoShowMap(map)
     }
   }
 
-  // Recibe el evento completo para poder usar fecha_hora como fallback
   async function marcarNoVino(ev) {
     const fechaKey = ev.start?.dateTime?.slice(0, 19)
+    const nombreEv = parseNombreFromSummary(ev.summary)
+    const nombreKey = nombreEv ? `nombre:${nombreEv.toLowerCase().trim()}` : null
 
-    // Optimistic update por ambas claves
+    // 1. Optimistic update inmediato
     setNoShowMap(prev => ({
       ...prev,
       [ev.id]: true,
-      ...(fechaKey ? { [fechaKey]: true } : {}),
+      ...(fechaKey  ? { [fechaKey]: true }  : {}),
+      ...(nombreKey ? { [nombreKey]: true } : {}),
     }))
     setNoShowLoading(prev => ({ ...prev, [ev.id]: true }))
 
-    // Intento 1: por event_id
-    await supabase
+    let updated = false
+
+    // 2. Intento por event_id
+    const { data: r1 } = await supabase
       .from("turnos")
       .update({ no_show: true })
       .eq("event_id", ev.id)
-      .eq("client_id", "lumina_estetica")
+      .eq("client_id", CLIENT_ID)
+      .select("id")
 
-    // Intento 2 (fallback): por fecha_hora — cubre rows con event_id NULL
-    if (fechaKey) {
-      await supabase
+    if (r1 && r1.length > 0) updated = true
+
+    // 3. Fallback por fecha_hora (formato exacto 2026-06-09T14:00:00)
+    if (!updated && fechaKey) {
+      const { data: r2 } = await supabase
         .from("turnos")
         .update({ no_show: true })
         .eq("fecha_hora", fechaKey)
-        .eq("client_id", "lumina_estetica")
+        .eq("client_id", CLIENT_ID)
+        .select("id")
+      if (r2 && r2.length > 0) updated = true
+    }
+
+    // 4. Fallback por nombre (para eventos sin event_id ni fecha_hora)
+    if (!updated && nombreEv) {
+      const { data: r3 } = await supabase
+        .from("turnos")
+        .update({ no_show: true })
+        .ilike("nombre", nombreEv)
+        .eq("client_id", CLIENT_ID)
+        .select("id")
+      if (r3 && r3.length > 0) updated = true
     }
 
     setNoShowLoading(prev => ({ ...prev, [ev.id]: false }))
-    await fetchNoShow()
+
+    if (updated) {
+      // Esperar que el realtime no pise el estado antes del re-fetch
+      await new Promise(res => setTimeout(res, 600))
+      await fetchNoShow()
+    }
+    // Si no matcheó nada, mantenemos el optimistic (visual solamente)
   }
 
   const eventosMes = eventos.filter(ev => {
@@ -261,8 +297,12 @@ export default function Calendario() {
                   {eventosDia.map(ev => {
                     const { start, end } = parseEventTime(ev)
                     const fechaKey  = ev.start?.dateTime?.slice(0, 19)
+                    const nombreEv  = parseNombreFromSummary(ev.summary)
+                    const nombreKey = nombreEv ? `nombre:${nombreEv.toLowerCase().trim()}` : null
                     const isPast    = start && start < new Date()
-                    const isNoShow  = noShowMap[ev.id] === true || noShowMap[fechaKey] === true
+                    const isNoShow  = noShowMap[ev.id] === true
+                                   || (fechaKey && noShowMap[fechaKey] === true)
+                                   || (nombreKey && noShowMap[nombreKey] === true)
                     const isSaving  = noShowLoading[ev.id] === true
                     const borderColor = isNoShow ? "#f07070" : "#7B2FFF"
 
@@ -281,7 +321,6 @@ export default function Calendario() {
                           <div style={{ fontSize: 10, color: "var(--text-4)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.description}</div>
                         )}
 
-                        {/* Botón No vino — solo para turnos pasados */}
                         {isPast && (
                           <div style={{ marginTop: 8 }}>
                             {isNoShow ? (
