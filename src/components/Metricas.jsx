@@ -22,6 +22,7 @@ function ReIcon()     { return <svg width="12" height="12" viewBox="0 0 24 24" f
 function IgIcon()     { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> }
 function WaIcon()     { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> }
 function NoShowIcon() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7"/><line x1="17" y1="17" x2="21" y2="21"/><line x1="21" y1="17" x2="17" y2="21"/></svg> }
+function ExportIcon() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> }
 
 function parsePrecio(str) {
   if (!str) return 0
@@ -30,7 +31,6 @@ function parsePrecio(str) {
   return isNaN(n) ? 0 : n
 }
 
-// ── Mensaje hero según período y resultados ──
 function heroMsg(periodo, confirmados, facturacion) {
   const fmt = n => `$${n.toLocaleString("es-UY")}`
   const sinDatos = { emoji: "🤖", title: "El sistema está activo y listo para trabajar", sub: "Cuando llegue el primer mensaje, tu IA lo gestiona sola" }
@@ -53,11 +53,273 @@ function heroMsg(periodo, confirmados, facturacion) {
   }
 }
 
+// ── Carga dinámica de jsPDF desde CDN ──
+function loadJsPDF() {
+  return new Promise((resolve, reject) => {
+    if (window.jspdf) { resolve(window.jspdf.jsPDF); return }
+    const script = document.createElement("script")
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    script.onload = () => resolve(window.jspdf.jsPDF)
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+}
+
+async function generarPDF({ turnos, config, periodo, confirmados, cancelados, reagendados, noShow, facturacion, conversion, total }) {
+  const JsPDF = await loadJsPDF()
+  const doc = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+
+  const W = 210
+  const PURPLE = [123, 47, 255]
+  const MAGENTA = [217, 38, 255]
+  const GREEN = [29, 158, 117]
+  const DARK = [18, 18, 18]
+  const GRAY = [120, 120, 120]
+  const LIGHT = [240, 240, 245]
+
+  const periodoLabel = { hoy: "Hoy", semana: "Esta semana", mes: "Este mes" }[periodo] || periodo
+  const fechaExport = new Date().toLocaleDateString("es-UY", { day: "2-digit", month: "2-digit", year: "numeric" })
+  const nombreSalon = config?.nombre || CLIENT_ID
+
+  // ── HEADER con gradiente ──
+  doc.setFillColor(...DARK)
+  doc.rect(0, 0, W, 42, "F")
+
+  // Logo SVG como círculo + líneas (recreado geométricamente)
+  const lx = 18, ly = 21
+  doc.setDrawColor(...PURPLE)
+  doc.setLineWidth(2.2)
+  doc.circle(lx, ly, 7, "S")
+  doc.setFillColor(...PURPLE)
+  doc.circle(lx, ly, 1.8, "F")
+  doc.setLineWidth(1.2)
+  doc.line(lx - 10, ly, lx - 7, ly)
+  doc.circle(lx - 10, ly, 1.2, "F")
+  doc.line(lx + 7, ly, lx + 10, ly)
+  doc.setFillColor(...MAGENTA)
+  doc.circle(lx + 10, ly, 1.2, "F")
+
+  // Nombre empresa
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(16)
+  doc.setTextColor(255, 255, 255)
+  doc.text("Estética AI", 34, 18)
+
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(9)
+  doc.setTextColor(...GRAY)
+  doc.text("Panel de Control Inteligente", 34, 24.5)
+
+  // Línea separadora degradada simulada
+  doc.setDrawColor(...PURPLE)
+  doc.setLineWidth(0.4)
+  doc.line(14, 32, W - 14, 32)
+
+  // Período y fecha
+  doc.setFontSize(8)
+  doc.setTextColor(...GRAY)
+  doc.text(`Período: ${periodoLabel}`, 14, 38)
+  doc.text(`Exportado: ${fechaExport}`, W - 14, 38, { align: "right" })
+
+  // ── NOMBRE DEL SALÓN ──
+  let y = 52
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(13)
+  doc.setTextColor(...DARK)
+  doc.text(nombreSalon, 14, y)
+
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(9)
+  doc.setTextColor(...GRAY)
+  doc.text("Reporte de turnos y rendimiento", 14, y + 6)
+  y += 16
+
+  // ── KPIs en 4 cajas ──
+  const kpis = [
+    { label: "Agendados",   val: String(total),        color: PURPLE },
+    { label: "Confirmados", val: String(confirmados),  color: GREEN  },
+    { label: "Cancelados",  val: String(cancelados),   color: [240, 112, 112] },
+    { label: "Conversión",  val: `${conversion}%`,     color: [239, 159, 39] },
+  ]
+  const kw = (W - 28 - 9) / 4
+  kpis.forEach((k, i) => {
+    const kx = 14 + i * (kw + 3)
+    doc.setFillColor(248, 248, 252)
+    doc.roundedRect(kx, y, kw, 20, 2, 2, "F")
+    doc.setDrawColor(220, 220, 230)
+    doc.setLineWidth(0.3)
+    doc.roundedRect(kx, y, kw, 20, 2, 2, "S")
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(7.5)
+    doc.setTextColor(...GRAY)
+    doc.text(k.label, kx + kw / 2, y + 6.5, { align: "center" })
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(16)
+    doc.setTextColor(...k.color)
+    doc.text(k.val, kx + kw / 2, y + 15.5, { align: "center" })
+  })
+  y += 28
+
+  // ── FACTURACIÓN ──
+  doc.setFillColor(235, 250, 244)
+  doc.roundedRect(14, y, W - 28, 14, 2, 2, "F")
+  doc.setDrawColor(...GREEN)
+  doc.setLineWidth(0.3)
+  doc.roundedRect(14, y, W - 28, 14, 2, 2, "S")
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(9)
+  doc.setTextColor(...GREEN)
+  doc.text("Facturación recuperada en piloto automático", 20, y + 5.5)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(12)
+  doc.text(`$${facturacion.toLocaleString("es-UY")}`, W - 18, y + 9, { align: "right" })
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(7.5)
+  doc.setTextColor(...GRAY)
+  doc.text(`Basada en ${confirmados} turnos confirmados`, 20, y + 11)
+  y += 22
+
+  // ── TABLA DE TURNOS ──
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(10)
+  doc.setTextColor(...DARK)
+  doc.text("Detalle de turnos", 14, y)
+  y += 6
+
+  // Header tabla
+  const cols = [
+    { label: "Nombre",   w: 38, x: 14 },
+    { label: "Teléfono", w: 28, x: 52 },
+    { label: "Canal",    w: 22, x: 80 },
+    { label: "Servicio", w: 46, x: 102 },
+    { label: "Fecha",    w: 22, x: 148 },
+    { label: "Estado",   w: 26, x: 170 },
+  ]
+
+  doc.setFillColor(...PURPLE)
+  doc.roundedRect(14, y, W - 28, 8, 1, 1, "F")
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(7.5)
+  doc.setTextColor(255, 255, 255)
+  cols.forEach(c => doc.text(c.label, c.x + 2, y + 5.2))
+  y += 10
+
+  // Filas
+  const estadoColor = {
+    confirmado: GREEN,
+    reagendado: PURPLE,
+    cancelado:  [240, 112, 112],
+    contacto:   GRAY,
+  }
+
+  turnos.forEach((t, i) => {
+    if (y > 265) {
+      doc.addPage()
+      y = 20
+    }
+    const bg = i % 2 === 0 ? [252, 252, 255] : [255, 255, 255]
+    doc.setFillColor(...bg)
+    doc.rect(14, y, W - 28, 7.5, "F")
+    doc.setDrawColor(230, 230, 238)
+    doc.setLineWidth(0.2)
+    doc.line(14, y + 7.5, W - 14, y + 7.5)
+
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(7.5)
+    doc.setTextColor(...DARK)
+
+    const fechaStr = t.fecha_hora
+      ? new Date(t.fecha_hora).toLocaleDateString("es-UY", { day: "2-digit", month: "2-digit" })
+      : (t.hora_turno || "—")
+
+    const rows = [
+      t.nombre    || "—",
+      t.telefono  || "—",
+      t.canal     || "—",
+      t.servicio  || "—",
+      fechaStr,
+    ]
+    rows.forEach((val, ci) => {
+      const col = cols[ci]
+      const truncated = String(val).length > (col.w / 2.2) ? String(val).slice(0, Math.floor(col.w / 2.2)) + "…" : String(val)
+      doc.text(truncated, col.x + 2, y + 5)
+    })
+
+    // Estado con color
+    const ec = estadoColor[t.estado] || GRAY
+    doc.setTextColor(...ec)
+    doc.setFont("helvetica", "bold")
+    doc.text(t.estado || "—", cols[5].x + 2, y + 5)
+    y += 7.5
+  })
+
+  if (turnos.length === 0) {
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.setTextColor(...GRAY)
+    doc.text("Sin turnos en este período", 14, y + 6)
+    y += 14
+  }
+
+  y += 10
+
+  // ── RESUMEN FINAL ──
+  if (y > 240) { doc.addPage(); y = 20 }
+
+  doc.setFillColor(248, 248, 252)
+  doc.roundedRect(14, y, W - 28, 36, 2, 2, "F")
+  doc.setDrawColor(220, 220, 230)
+  doc.setLineWidth(0.3)
+  doc.roundedRect(14, y, W - 28, 36, 2, 2, "S")
+
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(9)
+  doc.setTextColor(...DARK)
+  doc.text("Resumen del período", 20, y + 7)
+
+  const resumenItems = [
+    ["Confirmados", confirmados, GREEN],
+    ["Reagendados", reagendados, PURPLE],
+    ["Cancelados",  cancelados,  [240, 112, 112]],
+    ["No vino",     noShow,      [239, 159, 39]],
+  ]
+  const rw = (W - 28 - 20) / 4
+  resumenItems.forEach(([label, val, color], i) => {
+    const rx = 20 + i * (rw + 4)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(7.5)
+    doc.setTextColor(...GRAY)
+    doc.text(label, rx, y + 17)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(14)
+    doc.setTextColor(...color)
+    doc.text(String(val), rx, y + 29)
+  })
+  y += 44
+
+  // ── FOOTER ──
+  const pageCount = doc.internal.getNumberOfPages()
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p)
+    doc.setFillColor(...DARK)
+    doc.rect(0, 287, W, 10, "F")
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(7)
+    doc.setTextColor(...GRAY)
+    doc.text("Estética AI — Panel de Control Inteligente", 14, 293)
+    doc.text(`Página ${p} de ${pageCount}`, W - 14, 293, { align: "right" })
+  }
+
+  const periodoFile = { hoy: "hoy", semana: "semana", mes: "mes" }[periodo]
+  doc.save(`estetica-ai-reporte-${periodoFile}-${fechaExport.replace(/\//g, "-")}.pdf`)
+}
+
 export default function Metricas() {
-  const [turnos,  setTurnos]  = useState([])
-  const [config,  setConfig]  = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [periodo, setPeriodo] = useState("semana")
+  const [turnos,      setTurnos]      = useState([])
+  const [config,      setConfig]      = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [periodo,     setPeriodo]     = useState("semana")
+  const [exportando,  setExportando]  = useState(false)
   const isMobile = useIsMobile()
 
   useEffect(() => { fetchData() }, [periodo])
@@ -70,7 +332,7 @@ export default function Metricas() {
     else if (periodo === "mes")    desde.setDate(desde.getDate() - 30)
     const [{ data: t }, { data: c }] = await Promise.all([
       supabase.from("turnos").select("*").eq("client_id", CLIENT_ID).gte("created_at", desde.toISOString()),
-      supabase.from("config").select("servicios").eq("client_id", CLIENT_ID).limit(1).single(),
+      supabase.from("config").select("*").eq("client_id", CLIENT_ID).limit(1).single(),
     ])
     if (t) setTurnos(t)
     if (c) setConfig(c)
@@ -136,6 +398,20 @@ export default function Metricas() {
 
   const hero = heroMsg(periodo, confirmados, facturacion)
 
+  async function handleExport() {
+    setExportando(true)
+    try {
+      await generarPDF({
+        turnos, config, periodo,
+        confirmados, cancelados, reagendados, noShow,
+        facturacion, conversion, total,
+      })
+    } catch (e) {
+      console.error("Error generando PDF:", e)
+    }
+    setExportando(false)
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg)", overflowY: "auto" }}>
 
@@ -152,18 +428,45 @@ export default function Metricas() {
             <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>Rendimiento del negocio</div>
           </div>
         )}
-        <div style={{ display: "flex", gap: 4, ...(isMobile ? { width: "100%" } : {}) }}>
-          {[["hoy", "Hoy"], ["semana", "Esta semana"], ["mes", "Este mes"]].map(([val, label]) => (
-            <button key={val} onClick={() => setPeriodo(val)} style={{
-              flex: isMobile ? 1 : undefined,
-              fontSize: isMobile ? 12 : 11, fontWeight: periodo === val ? 500 : 400,
-              padding: isMobile ? "8px 4px" : "5px 12px",
+        <div style={{ display: "flex", gap: 6, alignItems: "center", ...(isMobile ? { width: "100%" } : {}) }}>
+          <div style={{ display: "flex", gap: 4, flex: isMobile ? 1 : undefined }}>
+            {[["hoy", "Hoy"], ["semana", "Esta semana"], ["mes", "Este mes"]].map(([val, label]) => (
+              <button key={val} onClick={() => setPeriodo(val)} style={{
+                flex: isMobile ? 1 : undefined,
+                fontSize: isMobile ? 12 : 11, fontWeight: periodo === val ? 500 : 400,
+                padding: isMobile ? "8px 4px" : "5px 12px",
+                borderRadius: "var(--radius-sm)",
+                background: periodo === val ? "var(--primary-10)" : "rgba(255,255,255,0.02)",
+                border: periodo === val ? "1px solid var(--primary-25)" : "1px solid var(--border-2)",
+                color: periodo === val ? "#c9a0ff" : "var(--text-3)", transition: "all 0.15s",
+              }}>{label}</button>
+            ))}
+          </div>
+
+          {/* ── BOTÓN EXPORTAR ── */}
+          <button
+            onClick={handleExport}
+            disabled={exportando || loading}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              padding: isMobile ? "8px 10px" : "5px 12px",
               borderRadius: "var(--radius-sm)",
-              background: periodo === val ? "var(--primary-10)" : "rgba(255,255,255,0.02)",
-              border: periodo === val ? "1px solid var(--primary-25)" : "1px solid var(--border-2)",
-              color: periodo === val ? "#c9a0ff" : "var(--text-3)", transition: "all 0.15s",
-            }}>{label}</button>
-          ))}
+              background: exportando ? "rgba(123,47,255,0.05)" : "rgba(123,47,255,0.12)",
+              border: "1px solid rgba(123,47,255,0.35)",
+              color: exportando ? "var(--text-4)" : "#c9a0ff",
+              fontSize: isMobile ? 12 : 11,
+              fontWeight: 500,
+              cursor: exportando ? "default" : "pointer",
+              transition: "all 0.15s",
+              flexShrink: 0,
+              whiteSpace: "nowrap",
+            }}
+            onMouseEnter={e => { if (!exportando) e.currentTarget.style.background = "rgba(123,47,255,0.20)" }}
+            onMouseLeave={e => { if (!exportando) e.currentTarget.style.background = "rgba(123,47,255,0.12)" }}
+          >
+            <ExportIcon />
+            {exportando ? "Generando..." : isMobile ? "PDF" : "Exportar PDF"}
+          </button>
         </div>
       </div>
 
@@ -172,21 +475,17 @@ export default function Metricas() {
       ) : (
         <div style={{ padding: isMobile ? "12px 14px" : "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
 
-          {/* ── HERO METRIC — dopamina visual ── */}
+          {/* ── HERO METRIC ── */}
           <div style={{
             background: "linear-gradient(135deg, rgba(29,158,117,0.10), rgba(123,47,255,0.07))",
             border: "1px solid rgba(29,158,117,0.22)",
             borderRadius: "var(--radius)",
             padding: isMobile ? "14px 14px" : "16px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: isMobile ? 12 : 16,
+            display: "flex", alignItems: "center", gap: isMobile ? 12 : 16,
           }}>
-            {/* Emoji */}
             <div style={{ fontSize: isMobile ? 30 : 36, lineHeight: 1, flexShrink: 0, filter: "drop-shadow(0 0 8px rgba(29,158,117,0.4))" }}>
               {hero.emoji}
             </div>
-            {/* Texto */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 700, color: "#f0f0f0", lineHeight: 1.3, marginBottom: 4 }}>
                 {hero.title}
@@ -195,7 +494,6 @@ export default function Metricas() {
                 {hero.sub}
               </div>
             </div>
-            {/* Badge conversión */}
             {total > 0 && (
               <div style={{
                 flexShrink: 0, textAlign: "center",
