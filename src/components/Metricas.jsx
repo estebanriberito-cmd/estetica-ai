@@ -176,7 +176,7 @@ async function generarPDF({ turnos, config, periodo, confirmados, cancelados, re
   doc.setFont("helvetica", "normal")
   doc.setFontSize(7.5)
   doc.setTextColor(...GRAY)
-  doc.text(`Basada en ${confirmados} turnos confirmados`, 20, y + 11)
+  doc.text(`Basada en ${confirmados} turno${confirmados !== 1 ? "s" : ""} confirmado${confirmados !== 1 ? "s" : ""}`, 20, y + 11)
   y += 22
 
   // ── TABLA DE TURNOS ──
@@ -204,15 +204,23 @@ async function generarPDF({ turnos, config, periodo, confirmados, cancelados, re
   cols.forEach(c => doc.text(c.label, c.x + 2, y + 5.2))
   y += 10
 
-  // Filas
+  // Filas — solo turnos con nombre Y servicio, ordenados por fecha, excluir "contacto"
   const estadoColor = {
     confirmado: GREEN,
     reagendado: PURPLE,
     cancelado:  [240, 112, 112],
-    contacto:   GRAY,
+    "no vino":  [239, 159, 39],
   }
 
-  turnos.forEach((t, i) => {
+  const turnosFiltrados = turnos
+    .filter(t => t.nombre && t.servicio && t.estado !== "contacto")
+    .sort((a, b) => {
+      const fa = a.fecha_hora ? new Date(a.fecha_hora) : new Date(a.created_at)
+      const fb = b.fecha_hora ? new Date(b.fecha_hora) : new Date(b.created_at)
+      return fa - fb
+    })
+
+  turnosFiltrados.forEach((t, i) => {
     if (y > 265) {
       doc.addPage()
       y = 20
@@ -232,6 +240,8 @@ async function generarPDF({ turnos, config, periodo, confirmados, cancelados, re
       ? new Date(t.fecha_hora).toLocaleDateString("es-UY", { day: "2-digit", month: "2-digit" })
       : (t.hora_turno || "—")
 
+    const estadoLabel = t.no_show ? "no vino" : (t.estado || "—")
+
     const rows = [
       t.nombre    || "—",
       t.telefono  || "—",
@@ -246,18 +256,18 @@ async function generarPDF({ turnos, config, periodo, confirmados, cancelados, re
     })
 
     // Estado con color
-    const ec = estadoColor[t.estado] || GRAY
+    const ec = estadoColor[estadoLabel] || GRAY
     doc.setTextColor(...ec)
     doc.setFont("helvetica", "bold")
-    doc.text(t.estado || "—", cols[5].x + 2, y + 5)
+    doc.text(estadoLabel, cols[5].x + 2, y + 5)
     y += 7.5
   })
 
-  if (turnos.length === 0) {
+  if (turnosFiltrados.length === 0) {
     doc.setFont("helvetica", "normal")
     doc.setFontSize(9)
     doc.setTextColor(...GRAY)
-    doc.text("Sin turnos en este período", 14, y + 6)
+    doc.text("Sin turnos con datos en este período", 14, y + 6)
     y += 14
   }
 
